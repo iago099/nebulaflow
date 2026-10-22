@@ -1,0 +1,2311 @@
+<!doctype html>
+<html lang="pt-BR" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NebulaFlow — Gestão Visual de Projetos</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%239333ea'/%3E%3Cstop offset='50%25' stop-color='%237c3aed'/%3E%3Cstop offset='100%25' stop-color='%23d946ef'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cg fill='none' stroke='%23ffffff' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='32 14 14 23 32 32 50 23 32 14'/%3E%3Cpolyline points='14 41 32 50 50 41'/%3E%3Cpolyline points='14 32 32 41 50 32'/%3E%3C/g%3E%3C/svg%3E"
+    />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            },
+            boxShadow: {
+              glow: '0 0 25px -5px rgba(139, 92, 246, 0.4)',
+              'glow-lg': '0 10px 40px -10px rgba(168, 85, 247, 0.55)',
+              'card-drag':
+                '0 28px 55px -12px rgba(0, 0, 0, 0.85), 0 0 30px 4px rgba(139, 92, 246, 0.5)',
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- React 18 + ReactDOM 18 + Framer Motion + Babel (UMD builds 100% compatíveis com file://) -->
+    <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/framer-motion@10.18.0/dist/framer-motion.js"></script>
+    <script crossorigin src="https://unpkg.com/@babel/standalone@7.26.2/babel.min.js"></script>
+
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        background-color: #07070b;
+        color: #f1f5f9;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        user-select: none;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(13, 13, 20, 0.6);
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(139, 92, 246, 0.35);
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(168, 85, 247, 0.6);
+      }
+      @keyframes pulseGlow {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 1; }
+      }
+      .animate-pulse-glow {
+        animation: pulseGlow 2.5s infinite ease-in-out;
+      }
+    </style>
+  </head>
+  <body class="bg-[#07070b] text-slate-100 antialiased selection:bg-purple-500/30 selection:text-purple-200 overflow-x-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useRef, useMemo } = React;
+      const Motion = window.Motion || {};
+      const motion = Motion.motion || {
+        div: 'div',
+        button: 'button',
+        form: 'form',
+        span: 'span',
+      };
+      const AnimatePresence = Motion.AnimatePresence || (({ children }) => <>{children}</>);
+
+      // ==========================================
+      // ÍCONES VETORIAIS (Lucide SVG System)
+      // ==========================================
+      const Icon = ({ name, className = 'w-4 h-4' }) => {
+        const icons = {
+          layers: (
+            <>
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
+            </>
+          ),
+          chevronLeft: <polyline points="15 18 9 12 15 6" />,
+          palette: (
+            <>
+              <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+              <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+              <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+              <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+            </>
+          ),
+          rotateCcw: (
+            <>
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </>
+          ),
+          sparkles: (
+            <>
+              <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
+              <path d="M5 3v4" />
+              <path d="M19 17v4" />
+              <path d="M3 5h4" />
+              <path d="M17 19h4" />
+            </>
+          ),
+          check: <polyline points="20 6 9 17 4 12" />,
+          search: (
+            <>
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </>
+          ),
+          x: (
+            <>
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </>
+          ),
+          plus: (
+            <>
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </>
+          ),
+          trash: (
+            <>
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+            </>
+          ),
+          star: (
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          ),
+          calendar: (
+            <>
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </>
+          ),
+          checkSquare: (
+            <>
+              <polyline points="9 11 12 14 22 4" />
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </>
+          ),
+          alignLeft: (
+            <>
+              <line x1="17" y1="10" x2="3" y2="10" />
+              <line x1="21" y1="6" x2="3" y2="6" />
+              <line x1="21" y1="14" x2="3" y2="14" />
+              <line x1="17" y1="18" x2="3" y2="18" />
+            </>
+          ),
+          edit: (
+            <>
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+            </>
+          ),
+          tag: (
+            <>
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </>
+          ),
+          users: (
+            <>
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </>
+          ),
+          grid: (
+            <>
+              <rect x="3" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="3" width="7" height="7" rx="1" />
+              <rect x="14" y="14" width="7" height="7" rx="1" />
+              <rect x="3" y="14" width="7" height="7" rx="1" />
+            </>
+          ),
+          arrowUpRight: (
+            <>
+              <line x1="7" y1="17" x2="17" y2="7" />
+              <polyline points="7 7 17 7 17 17" />
+            </>
+          ),
+          grip: (
+            <>
+              <circle cx="9" cy="5" r="1" />
+              <circle cx="9" cy="12" r="1" />
+              <circle cx="9" cy="19" r="1" />
+              <circle cx="15" cy="5" r="1" />
+              <circle cx="15" cy="12" r="1" />
+              <circle cx="15" cy="19" r="1" />
+            </>
+          ),
+        };
+
+        return (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+          >
+            {icons[name] || null}
+          </svg>
+        );
+      };
+
+      // ==========================================
+      // DADOS INICIAIS, TEMAS E MEMBROS
+      // ==========================================
+      const BOARD_THEMES = [
+        {
+          id: 'cyber-nebula',
+          name: 'Cyber Nebula',
+          bgClass:
+            'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-950/65 via-[#090912] to-[#050508]',
+          previewGradient: 'from-purple-600 via-violet-800 to-slate-950',
+        },
+        {
+          id: 'midnight-synth',
+          name: 'Midnight Synthwave',
+          bgClass:
+            'bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-fuchsia-950/55 via-indigo-950/35 to-[#060609]',
+          previewGradient: 'from-fuchsia-600 via-purple-800 to-indigo-950',
+        },
+        {
+          id: 'obsidian-matrix',
+          name: 'Obsidian Void',
+          bgClass:
+            'bg-[radial-gradient(circle_at_50%_0%,_var(--tw-gradient-stops))] from-indigo-950/60 via-[#08080e] to-[#040407]',
+          previewGradient: 'from-indigo-600 via-slate-900 to-black',
+        },
+        {
+          id: 'aurora-cyber',
+          name: 'Aurora Borealis',
+          bgClass:
+            'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-950/45 via-purple-950/40 to-[#06060b]',
+          previewGradient: 'from-emerald-500 via-purple-800 to-slate-950',
+        },
+        {
+          id: 'crimson-eclipse',
+          name: 'Crimson Eclipse',
+          bgClass:
+            'bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-rose-950/50 via-purple-950/35 to-[#07070b]',
+          previewGradient: 'from-rose-600 via-purple-900 to-slate-950',
+        },
+      ];
+
+      const DEFAULT_LABELS = [
+        { id: 'lbl-1', name: 'Alta Prioridade', color: 'rose' },
+        { id: 'lbl-2', name: 'Design System', color: 'purple' },
+        { id: 'lbl-3', name: 'Frontend / UI', color: 'fuchsia' },
+        { id: 'lbl-4', name: 'Arquitetura', color: 'indigo' },
+        { id: 'lbl-5', name: 'Performance', color: 'emerald' },
+        { id: 'lbl-6', name: 'Em Revisão', color: 'amber' },
+        { id: 'lbl-7', name: 'API / Dados', color: 'cyan' },
+      ];
+
+      const WORKSPACE_MEMBERS = [
+        {
+          id: 'mem-1',
+          name: 'Helena Vance',
+          role: 'Staff UI/UX Designer',
+          initials: 'HV',
+          avatarGradient: 'from-purple-500 to-fuchsia-600',
+        },
+        {
+          id: 'mem-2',
+          name: 'Lucas Kovács',
+          role: 'Senior Frontend Engineer',
+          initials: 'LK',
+          avatarGradient: 'from-indigo-500 to-cyan-500',
+        },
+        {
+          id: 'mem-3',
+          name: 'Sofia Miyazaki',
+          role: 'Product Manager',
+          initials: 'SM',
+          avatarGradient: 'from-rose-500 to-amber-500',
+        },
+        {
+          id: 'mem-4',
+          name: 'Rafael Costa',
+          role: 'Tech Lead',
+          initials: 'RC',
+          avatarGradient: 'from-emerald-500 to-teal-600',
+        },
+        {
+          id: 'mem-5',
+          name: 'Nina Sterling',
+          role: 'Motion Engineer',
+          initials: 'NS',
+          avatarGradient: 'from-fuchsia-500 to-purple-700',
+        },
+      ];
+
+      const LABEL_COLOR_MAP = {
+        purple: {
+          bg: 'bg-purple-500/15',
+          text: 'text-purple-300',
+          border: 'border-purple-500/35',
+          dot: 'bg-purple-400',
+          solid: 'bg-purple-600',
+        },
+        fuchsia: {
+          bg: 'bg-fuchsia-500/15',
+          text: 'text-fuchsia-300',
+          border: 'border-fuchsia-500/35',
+          dot: 'bg-fuchsia-400',
+          solid: 'bg-fuchsia-600',
+        },
+        indigo: {
+          bg: 'bg-indigo-500/15',
+          text: 'text-indigo-300',
+          border: 'border-indigo-500/35',
+          dot: 'bg-indigo-400',
+          solid: 'bg-indigo-600',
+        },
+        emerald: {
+          bg: 'bg-emerald-500/15',
+          text: 'text-emerald-300',
+          border: 'border-emerald-500/35',
+          dot: 'bg-emerald-400',
+          solid: 'bg-emerald-600',
+        },
+        amber: {
+          bg: 'bg-amber-500/15',
+          text: 'text-amber-300',
+          border: 'border-amber-500/35',
+          dot: 'bg-amber-400',
+          solid: 'bg-amber-600',
+        },
+        rose: {
+          bg: 'bg-rose-500/15',
+          text: 'text-rose-300',
+          border: 'border-rose-500/35',
+          dot: 'bg-rose-400',
+          solid: 'bg-rose-600',
+        },
+        cyan: {
+          bg: 'bg-cyan-500/15',
+          text: 'text-cyan-300',
+          border: 'border-cyan-500/35',
+          dot: 'bg-cyan-400',
+          solid: 'bg-cyan-600',
+        },
+      };
+
+      const INITIAL_BOARDS = [
+        {
+          id: 'board-nebulaflow-v2',
+          title: 'NebulaFlow Design System 2.0',
+          description:
+            'Arquitetura de componentes, micro-interações com Framer Motion e tokens em Dark Mode.',
+          themeId: 'cyber-nebula',
+          starred: true,
+          columns: [
+            { id: 'col-backlog', title: 'A Fazer', cardIds: ['card-1', 'card-2'] },
+            { id: 'col-progress', title: 'Em Andamento', cardIds: ['card-3', 'card-4'] },
+            { id: 'col-review', title: 'Revisão', cardIds: ['card-5'] },
+            { id: 'col-done', title: 'Concluído', cardIds: ['card-6'] },
+          ],
+          cards: {
+            'card-1': {
+              id: 'card-1',
+              title: 'Definir paleta Cyberpunk SaaS & Tokens de Iluminação',
+              description:
+                'Criar variáveis semânticas de superfície (Obsidian 950/900/850) com bordas translúcidas e sombras neon em violeta (#8b5cf6) e fúcsia (#d946ef).',
+              labels: [DEFAULT_LABELS[1], DEFAULT_LABELS[2]],
+              dueDate: '2026-10-28',
+              checklist: [
+                { id: 'chk-1', text: 'Mapear contrastes WCAG AAA no fundo escuro', completed: true },
+                { id: 'chk-2', text: 'Criar tokens de glow para estados de foco e drag', completed: true },
+                { id: 'chk-3', text: 'Documentar gradientes de superfície no Figma', completed: false },
+              ],
+              memberIds: ['mem-1', 'mem-5'],
+            },
+            'card-2': {
+              id: 'card-2',
+              title: 'Implementar Busca Instantânea e Filtro por Membros',
+              description:
+                'Permitir filtragem rápida de cartões por título, etiquetas ou membros responsáveis diretamente na barra superior do quadro.',
+              labels: [DEFAULT_LABELS[2], DEFAULT_LABELS[4]],
+              dueDate: '2026-11-02',
+              checklist: [
+                { id: 'chk-21', text: 'Filtro reativo por texto na barra do quadro', completed: true },
+                { id: 'chk-22', text: 'Filtro rápido por avatares de membros', completed: false },
+              ],
+              memberIds: ['mem-2'],
+            },
+            'card-3': {
+              id: 'card-3',
+              title: 'Física Elástica no Drag and Drop de Cartões',
+              description:
+                'Arraste qualquer cartão entre as colunas! Os cartões flutuam com inclinação sutil, sombra neon roxa e transição elástica ao soltar.',
+              labels: [DEFAULT_LABELS[0], DEFAULT_LABELS[2]],
+              dueDate: '2026-10-25',
+              checklist: [
+                { id: 'chk-31', text: 'Efeito de levitação e rotação ao segurar o cartão', completed: true },
+                { id: 'chk-32', text: 'Indicador luminoso de posição ao mover entre listas', completed: true },
+                { id: 'chk-33', text: 'Persistência imediata da nova ordem no localStorage', completed: true },
+                { id: 'chk-34', text: 'Testar movimentação entre todas as colunas', completed: false },
+              ],
+              memberIds: ['mem-2', 'mem-5', 'mem-4'],
+            },
+            'card-4': {
+              id: 'card-4',
+              title: 'Modal Detalhado com Barra de Progresso Animada',
+              description:
+                'Clique em qualquer cartão para editar título, descrição detalhada, etiquetas coloridas, prazo de entrega, membros e checklist dinâmico.',
+              labels: [DEFAULT_LABELS[1], DEFAULT_LABELS[3]],
+              dueDate: '2026-10-26',
+              checklist: [
+                { id: 'chk-41', text: 'Barra de progresso com animação suave Framer Motion', completed: true },
+                { id: 'chk-42', text: 'Permitir criar, marcar e excluir subtarefas', completed: true },
+                { id: 'chk-43', text: 'Seletor interativo de membros com avatares', completed: false },
+              ],
+              memberIds: ['mem-1', 'mem-3'],
+            },
+            'card-5': {
+              id: 'card-5',
+              title: 'Sincronização Automática com LocalStorage',
+              description:
+                'Todas as alterações de quadros, listas, cartões, checklists e temas personalizados são salvas automaticamente no navegador.',
+              labels: [DEFAULT_LABELS[6], DEFAULT_LABELS[5]],
+              dueDate: '2026-10-24',
+              checklist: [
+                { id: 'chk-51', text: 'Criar store persistente com serialização segura', completed: true },
+                { id: 'chk-52', text: 'Botão para restaurar dados de demonstração', completed: true },
+              ],
+              memberIds: ['mem-4'],
+            },
+            'card-6': {
+              id: 'card-6',
+              title: 'Setup da Arquitetura React + Tailwind CSS + Framer Motion',
+              description:
+                'Interface nativa em tons escuros elegantes com detalhes em roxo e branco.',
+              labels: [DEFAULT_LABELS[3], DEFAULT_LABELS[4]],
+              dueDate: '2026-10-20',
+              checklist: [
+                { id: 'chk-61', text: 'Definir estrutura de dados de Quadros e Colunas', completed: true },
+                { id: 'chk-62', text: 'Configurar paleta customizada Dark Cyberpunk', completed: true },
+              ],
+              memberIds: ['mem-2', 'mem-4'],
+            },
+          },
+        },
+        {
+          id: 'board-hyperion-ai',
+          title: 'Lançamento SaaS — Hyperion AI',
+          description:
+            'Planejamento de campanha, landing page interativa e integração de pagamentos.',
+          themeId: 'midnight-synth',
+          starred: false,
+          columns: [
+            { id: 'col-ai-1', title: 'A Fazer', cardIds: ['card-ai-1'] },
+            { id: 'col-ai-2', title: 'Em Andamento', cardIds: ['card-ai-2'] },
+            { id: 'col-ai-3', title: 'Concluído', cardIds: ['card-ai-3'] },
+          ],
+          cards: {
+            'card-ai-1': {
+              id: 'card-ai-1',
+              title: 'Hero Section 3D com Partículas Interativas',
+              description: 'Desenvolver animação de entrada com brilho roxo e CTA de alta conversão.',
+              labels: [DEFAULT_LABELS[2], DEFAULT_LABELS[0]],
+              dueDate: '2026-11-05',
+              checklist: [
+                { id: 'chk-ai-1', text: 'Protótipo de movimento', completed: true },
+                { id: 'chk-ai-2', text: 'Otimização para 60fps mobile', completed: false },
+              ],
+              memberIds: ['mem-1', 'mem-5'],
+            },
+            'card-ai-2': {
+              id: 'card-ai-2',
+              title: 'Integração de Checkout & Webhooks Stripe',
+              description: 'Fluxo de assinatura mensal/anual com upgrade instantâneo de workspace.',
+              labels: [DEFAULT_LABELS[6], DEFAULT_LABELS[3]],
+              dueDate: '2026-10-29',
+              checklist: [
+                { id: 'chk-ai-3', text: 'Configurar planos e preços', completed: true },
+                { id: 'chk-ai-4', text: 'Testar webhooks em ambiente sandbox', completed: true },
+                { id: 'chk-ai-5', text: 'Tela de confirmação animada', completed: false },
+              ],
+              memberIds: ['mem-4', 'mem-2'],
+            },
+            'card-ai-3': {
+              id: 'card-ai-3',
+              title: 'Identidade Visual & Guia de Copywriting',
+              description: 'Tom de voz futurista, direto e focado em produtividade.',
+              labels: [DEFAULT_LABELS[1]],
+              dueDate: '2026-10-18',
+              checklist: [
+                { id: 'chk-ai-6', text: 'Aprovar manifesto da marca', completed: true },
+              ],
+              memberIds: ['mem-3'],
+            },
+          },
+        },
+      ];
+
+      function formatShortDate(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        const date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+      }
+
+      function isDateOverdue(dateStr) {
+        if (!dateStr) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const [y, m, d] = dateStr.split('-').map(Number);
+        return new Date(y, m - 1, d) < today;
+      }
+
+      function useLocalStorage(key, initialValue) {
+        const [storedValue, setStoredValue] = useState(() => {
+          try {
+            const item = window.localStorage.getItem(key);
+            return item ? JSON.parse(item) : initialValue;
+          } catch {
+            return initialValue;
+          }
+        });
+
+        useEffect(() => {
+          try {
+            window.localStorage.setItem(key, JSON.stringify(storedValue));
+          } catch {}
+        }, [key, storedValue]);
+
+        return [storedValue, setStoredValue];
+      }
+
+      const AVATAR_GRADIENTS = [
+        'from-purple-500 to-fuchsia-600',
+        'from-indigo-500 to-cyan-500',
+        'from-rose-500 to-amber-500',
+        'from-emerald-500 to-teal-600',
+        'from-fuchsia-500 to-purple-700',
+        'from-amber-500 to-orange-600',
+      ];
+
+      function getInitials(name) {
+        if (!name) return 'MB';
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+
+      function MemberAvatar({ member, sizeClass = 'w-7 h-7 text-[11px]' }) {
+        if (member.avatarUrl) {
+          return (
+            <img
+              src={member.avatarUrl}
+              alt={member.name}
+              className={`${sizeClass} rounded-full object-cover shrink-0 bg-purple-900`}
+            />
+          );
+        }
+        return (
+          <div
+            className={`${sizeClass} rounded-full bg-gradient-to-br ${
+              member.avatarGradient || AVATAR_GRADIENTS[0]
+            } flex items-center justify-center font-bold text-white shrink-0`}
+          >
+            {member.initials}
+          </div>
+        );
+      }
+
+      // ==========================================
+      // MODAL DE GERENCIAMENTO DE MEMBROS (EQUIPE)
+      // ==========================================
+      function TeamModal({ isOpen, onClose, members, onAddMember, onRemoveMember }) {
+        const [name, setName] = useState('');
+        const [role, setRole] = useState('');
+        const [avatarUrl, setAvatarUrl] = useState('');
+        const [selectedGradient, setSelectedGradient] = useState(AVATAR_GRADIENTS[0]);
+
+        if (!isOpen) return null;
+
+        const handleFileUpload = (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            if (typeof reader.result === 'string') {
+              setAvatarUrl(reader.result);
+            }
+          };
+          reader.readAsDataURL(file);
+        };
+
+        const handleSubmit = (e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          onAddMember({
+            id: `mem-${Date.now()}`,
+            name: name.trim(),
+            role: role.trim() || 'Membro da Equipe',
+            initials: getInitials(name),
+            avatarGradient: selectedGradient,
+            avatarUrl: avatarUrl.trim() || null,
+          });
+          setName('');
+          setRole('');
+          setAvatarUrl('');
+        };
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+            <div className="fixed inset-0" onClick={onClose} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="relative z-10 w-full max-w-xl rounded-3xl bg-[#10101c] border border-purple-500/35 shadow-glow-lg p-6 sm:p-8 text-slate-100"
+            >
+              <button
+                onClick={onClose}
+                className="absolute top-5 right-5 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+              >
+                <Icon name="x" className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center">
+                  <Icon name="users" className="w-5 h-5 text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Gerenciar Membros da Equipe</h2>
+                  <p className="text-xs text-slate-400">
+                    Adicione pessoas reais com nome, cargo/e-mail e foto de perfil
+                  </p>
+                </div>
+              </div>
+
+              {/* Formulário de Novo Membro */}
+              <form
+                onSubmit={handleSubmit}
+                className="p-4 rounded-2xl bg-[#161626] border border-purple-500/25 space-y-4 mb-6"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                      Nome Completo *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Ex: Gabriel Silva"
+                      className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 focus:border-purple-500 text-xs text-white outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1">
+                      Cargo ou E-mail
+                    </label>
+                    <input
+                      type="text"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      placeholder="Ex: Desenvolvedor / gabriel@email.com"
+                      className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 focus:border-purple-500 text-xs text-white outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-slate-400">Cor:</span>
+                    {AVATAR_GRADIENTS.map((grad) => (
+                      <button
+                        key={grad}
+                        type="button"
+                        onClick={() => setSelectedGradient(grad)}
+                        className={`w-6 h-6 rounded-full bg-gradient-to-br ${grad} ${
+                          selectedGradient === grad ? 'ring-2 ring-white scale-110' : 'opacity-65'
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-purple-300 font-medium transition-colors">
+                    {avatarUrl ? '✓ Foto Selecionada (Trocar)' : '📷 Enviar Foto do PC'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white text-xs font-bold shadow-glow flex items-center justify-center gap-2"
+                >
+                  <Icon name="plus" className="w-4 h-4" />
+                  <span>Adicionar Membro à Equipe</span>
+                </button>
+              </form>
+
+              {/* Lista de Membros Atuais */}
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                  Membros Cadastrados ({members.length})
+                </p>
+                {members.map((m) => (
+                  <div
+                    key={m.id}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.04] border border-white/5"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <MemberAvatar member={m} sizeClass="w-8 h-8 text-xs" />
+                      <div className="truncate">
+                        <p className="text-sm font-semibold text-white truncate">{m.name}</p>
+                        <p className="text-xs text-slate-400 truncate">{m.role}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveMember(m.id)}
+                      title="Remover membro"
+                      className="p-2 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/15 transition-colors"
+                    >
+                      <Icon name="trash" className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        );
+      }
+
+      // ==========================================
+      // MODAL DETALHADO DO CARTÃO
+      // ==========================================
+      function CardModal({
+        card,
+        columnTitle,
+        members,
+        availableLabels,
+        onCreateLabel,
+        onDeleteLabel,
+        onOpenTeamModal,
+        onClose,
+        onUpdateCard,
+        onDeleteCard,
+      }) {
+        const [newCheckText, setNewCheckText] = useState('');
+        const [showCustomLabelForm, setShowCustomLabelForm] = useState(false);
+        const [customLabelName, setCustomLabelName] = useState('');
+        const [customLabelColor, setCustomLabelColor] = useState('purple');
+
+        if (!card) return null;
+
+        const totalCheck = card.checklist.length;
+        const doneCheck = card.checklist.filter((i) => i.completed).length;
+        const progressPct = totalCheck > 0 ? Math.round((doneCheck / totalCheck) * 100) : 0;
+
+        const toggleLabel = (label) => {
+          const exists = card.labels.some((l) => l.id === label.id);
+          const updatedLabels = exists
+            ? card.labels.filter((l) => l.id !== label.id)
+            : [...card.labels, label];
+          onUpdateCard({ ...card, labels: updatedLabels });
+        };
+
+        const handleAddCustomLabel = (e) => {
+          if (e) e.preventDefault();
+          if (!customLabelName.trim()) return;
+          const newLabel = {
+            id: `lbl-custom-${Date.now()}`,
+            name: customLabelName.trim(),
+            color: customLabelColor,
+          };
+          onCreateLabel(newLabel);
+          onUpdateCard({ ...card, labels: [...card.labels, newLabel] });
+          setCustomLabelName('');
+          setShowCustomLabelForm(false);
+        };
+
+        const toggleMember = (memberId) => {
+          const exists = card.memberIds.includes(memberId);
+          const updatedMembers = exists
+            ? card.memberIds.filter((id) => id !== memberId)
+            : [...card.memberIds, memberId];
+          onUpdateCard({ ...card, memberIds: updatedMembers });
+        };
+
+        const handleAddChecklistItem = (e) => {
+          e.preventDefault();
+          if (!newCheckText.trim()) return;
+          const newItem = {
+            id: `chk-${Date.now()}`,
+            text: newCheckText.trim(),
+            completed: false,
+          };
+          onUpdateCard({ ...card, checklist: [...card.checklist, newItem] });
+          setNewCheckText('');
+        };
+
+        const toggleChecklistItem = (itemId) => {
+          const updated = card.checklist.map((item) =>
+            item.id === itemId ? { ...item, completed: !item.completed } : item
+          );
+          onUpdateCard({ ...card, checklist: updated });
+        };
+
+        const removeChecklistItem = (itemId) => {
+          const updated = card.checklist.filter((item) => item.id !== itemId);
+          onUpdateCard({ ...card, checklist: updated });
+        };
+
+        return (
+          <AnimatePresence>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md overflow-y-auto">
+              <div className="fixed inset-0" onClick={onClose} />
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.93, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.93, y: 20 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+                className="relative z-10 w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#10101c] border border-purple-500/35 shadow-glow-lg p-6 sm:p-8 text-slate-100"
+              >
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-indigo-600" />
+
+                <div className="flex items-start justify-between gap-4 mb-6">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300">
+                        Lista: {columnTitle}
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={card.title}
+                      onChange={(e) => onUpdateCard({ ...card, title: e.target.value })}
+                      className="w-full bg-transparent text-xl sm:text-2xl font-extrabold text-white focus:bg-white/5 focus:px-3 py-1 rounded-xl border border-transparent focus:border-purple-500/50 outline-none transition-all"
+                    />
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-colors"
+                  >
+                    <Icon name="x" className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Coluna Principal */}
+                  <div className="lg:col-span-2 space-y-6">
+                    {card.labels.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {card.labels.map((label) => {
+                          const style = LABEL_COLOR_MAP[label.color] || LABEL_COLOR_MAP.purple;
+                          return (
+                            <span
+                              key={label.id}
+                              onClick={() => toggleLabel(label)}
+                              title="Clique para remover etiqueta"
+                              className={`cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-semibold border ${style.bg} ${style.text} ${style.border} hover:opacity-80`}
+                            >
+                              <span className={`w-2 h-2 rounded-full ${style.dot}`} />
+                              {label.name}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Descrição */}
+                    <div className="space-y-2.5">
+                      <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+                        <Icon name="alignLeft" className="w-4 h-4 text-purple-400" />
+                        Descrição Detalhada
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={card.description}
+                        onChange={(e) => onUpdateCard({ ...card, description: e.target.value })}
+                        placeholder="Adicione especificações técnicas, links, critérios de aceite ou notas sobre esta tarefa..."
+                        className="w-full p-3.5 rounded-2xl bg-[#161626] border border-white/10 focus:border-purple-500/60 text-sm text-slate-200 placeholder-slate-500 outline-none resize-y leading-relaxed"
+                      />
+                    </div>
+
+                    {/* Checklist com Barra de Progresso Animada */}
+                    <div className="space-y-3 p-4 sm:p-5 rounded-2xl bg-[#151525]/90 border border-white/10">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Icon name="checkSquare" className="w-4 h-4 text-purple-400" />
+                          <h3 className="text-xs font-bold uppercase tracking-wider text-white">
+                            Checklist de Subtarefas
+                          </h3>
+                        </div>
+                        <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                          {doneCheck}/{totalCheck} ({progressPct}%)
+                        </span>
+                      </div>
+
+                      <div className="w-full h-2.5 rounded-full bg-black/50 overflow-hidden p-0.5 border border-white/5">
+                        <motion.div
+                          initial={false}
+                          animate={{ width: `${progressPct}%` }}
+                          transition={{ type: 'spring', stiffness: 220, damping: 24 }}
+                          className={`h-full rounded-full ${
+                            progressPct === 100
+                              ? 'bg-gradient-to-r from-emerald-400 to-teal-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]'
+                              : 'bg-gradient-to-r from-purple-500 via-violet-500 to-fuchsia-500 shadow-[0_0_12px_rgba(168,85,247,0.6)]'
+                          }`}
+                        />
+                      </div>
+
+                      <div className="space-y-2 pt-1">
+                        {card.checklist.map((item) => (
+                          <div
+                            key={item.id}
+                            className="group flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 transition-colors"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => toggleChecklistItem(item.id)}
+                              className="flex items-center gap-3 flex-1 text-left"
+                            >
+                              <div
+                                className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all shrink-0 ${
+                                  item.completed
+                                    ? 'bg-gradient-to-br from-purple-500 to-fuchsia-600 border-purple-400 text-white shadow-glow'
+                                    : 'border-white/25 bg-black/30 hover:border-purple-400'
+                                }`}
+                              >
+                                {item.completed && <Icon name="check" className="w-3.5 h-3.5" />}
+                              </div>
+                              <span
+                                className={`text-sm transition-all ${
+                                  item.completed ? 'line-through text-slate-500' : 'text-slate-200'
+                                }`}
+                              >
+                                {item.text}
+                              </span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => removeChecklistItem(item.id)}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+                            >
+                              <Icon name="trash" className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      <form onSubmit={handleAddChecklistItem} className="flex items-center gap-2 pt-2">
+                        <input
+                          type="text"
+                          value={newCheckText}
+                          onChange={(e) => setNewCheckText(e.target.value)}
+                          placeholder="Adicionar item ao checklist..."
+                          className="flex-1 px-3.5 py-2 rounded-xl bg-black/40 border border-white/10 focus:border-purple-500 text-sm text-white placeholder-slate-500 outline-none"
+                        />
+                        <button
+                          type="submit"
+                          className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-glow"
+                        >
+                          <Icon name="plus" className="w-4 h-4" />
+                          <span>Incluir</span>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+
+                  {/* Barra Lateral Direita */}
+                  <div className="space-y-5">
+                    {/* Prazo */}
+                    <div className="p-4 rounded-2xl bg-[#161626] border border-white/10 space-y-2.5">
+                      <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+                        <Icon name="calendar" className="w-4 h-4 text-purple-400" />
+                        Prazo de Entrega
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="date"
+                          value={card.dueDate || ''}
+                          onChange={(e) =>
+                            onUpdateCard({ ...card, dueDate: e.target.value || null })
+                          }
+                          className="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/10 focus:border-purple-500 text-xs text-white outline-none"
+                        />
+                        {card.dueDate && (
+                          <button
+                            type="button"
+                            onClick={() => onUpdateCard({ ...card, dueDate: null })}
+                            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                          >
+                            <Icon name="x" className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Membros */}
+                    <div className="p-4 rounded-2xl bg-[#161626] border border-white/10 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+                          <Icon name="users" className="w-4 h-4 text-purple-400" />
+                          Membros Responsáveis
+                        </label>
+                        <button
+                          type="button"
+                          onClick={onOpenTeamModal}
+                          className="text-[11px] font-semibold text-purple-400 hover:text-purple-300"
+                        >
+                          + Novo Membro
+                        </button>
+                      </div>
+                      <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                        {members.map((member) => {
+                          const isAssigned = card.memberIds.includes(member.id);
+                          return (
+                            <button
+                              key={member.id}
+                              type="button"
+                              onClick={() => toggleMember(member.id)}
+                              className={`w-full flex items-center justify-between p-2 rounded-xl border text-left transition-all ${
+                                isAssigned
+                                  ? 'bg-purple-500/15 border-purple-500/40 text-white'
+                                  : 'bg-black/25 border-white/5 hover:border-white/15 text-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <MemberAvatar member={member} sizeClass="w-7 h-7 text-[11px]" />
+                                <div className="truncate">
+                                  <p className="text-xs font-semibold truncate">{member.name}</p>
+                                  <p className="text-[10px] text-slate-400 truncate">{member.role}</p>
+                                </div>
+                              </div>
+                              {isAssigned && (
+                                <Icon name="check" className="w-4 h-4 text-purple-400 shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Etiquetas */}
+                    <div className="p-4 rounded-2xl bg-[#161626] border border-white/10 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-300">
+                          <Icon name="tag" className="w-4 h-4 text-purple-400" />
+                          Etiquetas
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowCustomLabelForm((p) => !p)}
+                          className="text-[11px] font-semibold text-purple-400 hover:text-purple-300"
+                        >
+                          {showCustomLabelForm ? 'Fechar' : '+ Nova'}
+                        </button>
+                      </div>
+
+                      {showCustomLabelForm && (
+                        <form
+                          onSubmit={handleAddCustomLabel}
+                          className="p-2.5 rounded-xl bg-black/40 border border-purple-500/30 space-y-2"
+                        >
+                          <input
+                            type="text"
+                            value={customLabelName}
+                            onChange={(e) => setCustomLabelName(e.target.value)}
+                            placeholder="Nome da etiqueta..."
+                            className="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white outline-none"
+                          />
+                          <div className="flex items-center justify-between gap-1">
+                            {Object.keys(LABEL_COLOR_MAP).map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => setCustomLabelColor(c)}
+                                className={`w-5 h-5 rounded-full ${LABEL_COLOR_MAP[c].solid} ${
+                                  customLabelColor === c ? 'ring-2 ring-white scale-110' : 'opacity-60'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <button
+                            type="submit"
+                            className="w-full py-1.5 rounded-lg bg-purple-600 text-white text-xs font-semibold"
+                          >
+                            Criar Etiqueta
+                          </button>
+                        </form>
+                      )}
+
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableLabels.map((label) => {
+                          const active = card.labels.some((l) => l.id === label.id);
+                          const style = LABEL_COLOR_MAP[label.color] || LABEL_COLOR_MAP.purple;
+                          return (
+                            <div
+                              key={label.id}
+                              className={`group/lbl inline-flex items-center rounded-xl text-xs font-medium border transition-all ${
+                                active
+                                  ? `${style.bg} ${style.text} ${style.border} ring-1 ring-purple-400/40`
+                                  : 'bg-black/30 border-white/5 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => toggleLabel(label)}
+                                className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1"
+                              >
+                                <span className={`w-2 h-2 rounded-full ${style.dot}`} />
+                                <span>{label.name}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteLabel(label.id);
+                                }}
+                                title="Excluir etiqueta da lista"
+                                className="pr-2 pl-0.5 py-1 opacity-50 hover:opacity-100 hover:text-rose-400 transition-opacity"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Excluir Cartão */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onDeleteCard(card.id);
+                        onClose();
+                      }}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 text-rose-300 text-xs font-semibold transition-colors"
+                    >
+                      <Icon name="trash" className="w-4 h-4" />
+                      <span>Excluir Cartão</span>
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </AnimatePresence>
+        );
+      }
+
+      // ==========================================
+      // APLICAÇÃO PRINCIPAL (NebulaFlow)
+      // ==========================================
+      function App() {
+        const [boards, setBoards] = useLocalStorage('nebulaflow_boards_v1', INITIAL_BOARDS);
+        const [members, setMembers] = useLocalStorage(
+          'nebulaflow_members_v1',
+          WORKSPACE_MEMBERS
+        );
+        const [availableLabels, setAvailableLabels] = useLocalStorage(
+          'nebulaflow_labels_v1',
+          DEFAULT_LABELS
+        );
+        const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
+        const [activeBoardId, setActiveBoardId] = useLocalStorage(
+          'nebulaflow_active_board_v1',
+          INITIAL_BOARDS[0].id
+        );
+        const [searchQuery, setSearchQuery] = useState('');
+        const [showThemeMenu, setShowThemeMenu] = useState(false);
+        const [selectedCardId, setSelectedCardId] = useState(null);
+        const [activeMemberFilter, setActiveMemberFilter] = useState(null);
+
+        // Estados de listas e cartões
+        const [isAddingColumn, setIsAddingColumn] = useState(false);
+        const [newColumnTitle, setNewColumnTitle] = useState('');
+        const [addingCardColId, setAddingCardColId] = useState(null);
+        const [newCardTitle, setNewCardTitle] = useState('');
+        const [editingColId, setEditingColId] = useState(null);
+        const [colTitleDraft, setColTitleDraft] = useState('');
+
+        // Estados de criação de Quadro
+        const [isCreatingBoard, setIsCreatingBoard] = useState(false);
+        const [newBoardTitle, setNewBoardTitle] = useState('');
+        const [newBoardDesc, setNewBoardDesc] = useState('');
+        const [newBoardTheme, setNewBoardTheme] = useState(BOARD_THEMES[0].id);
+
+        // Estados de Drag and Drop Animado
+        const [draggingCardId, setDraggingCardId] = useState(null);
+        const [dragSourceColId, setDragSourceColId] = useState(null);
+        const [dragOverColId, setDragOverColId] = useState(null);
+        const [dragOverIndex, setDragOverIndex] = useState(null);
+
+        const activeBoard = boards.find((b) => b.id === activeBoardId) || null;
+        const theme =
+          BOARD_THEMES.find((t) => t.id === activeBoard?.themeId) || BOARD_THEMES[0];
+
+        const updateActiveBoard = (updated) => {
+          setBoards((prev) => prev.map((b) => (b.id === updated.id ? updated : b)));
+        };
+
+        // Movimentação de Cartão (Drag and Drop)
+        const handleDropCard = (targetColId, targetIndex) => {
+          if (!activeBoard || !draggingCardId || !dragSourceColId) return;
+
+          const startCol = activeBoard.columns.find((c) => c.id === dragSourceColId);
+          const finishCol = activeBoard.columns.find((c) => c.id === targetColId);
+          if (!startCol || !finishCol) return;
+
+          const sourceIndex = startCol.cardIds.indexOf(draggingCardId);
+          if (sourceIndex === -1) return;
+
+          if (startCol.id === finishCol.id) {
+            const newCardIds = Array.from(startCol.cardIds);
+            newCardIds.splice(sourceIndex, 1);
+            const adjustedIndex =
+              targetIndex !== null && targetIndex <= newCardIds.length
+                ? targetIndex
+                : newCardIds.length;
+            newCardIds.splice(adjustedIndex, 0, draggingCardId);
+
+            updateActiveBoard({
+              ...activeBoard,
+              columns: activeBoard.columns.map((c) =>
+                c.id === startCol.id ? { ...c, cardIds: newCardIds } : c
+              ),
+            });
+          } else {
+            const startCardIds = Array.from(startCol.cardIds);
+            startCardIds.splice(sourceIndex, 1);
+
+            const finishCardIds = Array.from(finishCol.cardIds);
+            const insertAt =
+              targetIndex !== null && targetIndex <= finishCardIds.length
+                ? targetIndex
+                : finishCardIds.length;
+            finishCardIds.splice(insertAt, 0, draggingCardId);
+
+            updateActiveBoard({
+              ...activeBoard,
+              columns: activeBoard.columns.map((c) => {
+                if (c.id === startCol.id) return { ...c, cardIds: startCardIds };
+                if (c.id === finishCol.id) return { ...c, cardIds: finishCardIds };
+                return c;
+              }),
+            });
+          }
+
+          setDraggingCardId(null);
+          setDragSourceColId(null);
+          setDragOverColId(null);
+          setDragOverIndex(null);
+        };
+
+        const selectedCard =
+          activeBoard && selectedCardId ? activeBoard.cards[selectedCardId] : null;
+        const selectedCardColumn =
+          activeBoard && selectedCardId
+            ? activeBoard.columns.find((c) => c.cardIds.includes(selectedCardId))?.title || ''
+            : '';
+
+        const allCards = activeBoard ? Object.values(activeBoard.cards) : [];
+        const totalCheckItems = allCards.reduce((acc, c) => acc + c.checklist.length, 0);
+        const completedCheckItems = allCards.reduce(
+          (acc, c) => acc + c.checklist.filter((i) => i.completed).length,
+          0
+        );
+
+        return (
+          <div className="min-h-screen bg-[#07070b] text-slate-100 flex flex-col">
+            {/* ========================================== */}
+            {/* NAVBAR SUPERIOR                            */}
+            {/* ========================================== */}
+            <header className="sticky top-0 z-30 h-16 border-b border-purple-500/15 bg-[#090911]/85 backdrop-blur-xl px-4 lg:px-8 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                {activeBoard && (
+                  <motion.button
+                    whileHover={{ scale: 1.03, x: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      setActiveBoardId(null);
+                      setSearchQuery('');
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-purple-500/15 border border-white/10 hover:border-purple-500/40 text-slate-200 text-sm font-medium transition-colors"
+                  >
+                    <Icon name="chevronLeft" className="w-4 h-4 text-purple-400" />
+                    <span>Quadros</span>
+                  </motion.button>
+                )}
+
+                <div
+                  onClick={() => setActiveBoardId(null)}
+                  className="flex items-center gap-2.5 cursor-pointer group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 via-violet-600 to-fuchsia-600 flex items-center justify-center shadow-glow group-hover:scale-105 transition-transform">
+                    <Icon name="layers" className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="hidden sm:inline font-bold tracking-tight text-white text-base">
+                    Nebula<span className="text-purple-400">Flow</span>
+                  </span>
+                </div>
+
+                {activeBoard && (
+                  <>
+                    <span className="text-slate-600 hidden md:inline">/</span>
+                    <h1 className="text-sm md:text-base font-semibold text-white truncate max-w-[180px] sm:max-w-xs md:max-w-md">
+                      {activeBoard.title}
+                    </h1>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                {activeBoard && (
+                  <div className="relative flex items-center">
+                    <span className="text-slate-400 absolute left-3 pointer-events-none">
+                      <Icon name="search" className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Filtrar cartões..."
+                      className="w-36 sm:w-56 bg-white/5 focus:bg-white/10 border border-white/10 focus:border-purple-500/60 rounded-xl pl-9 pr-8 py-1.5 text-sm text-white placeholder-slate-400 outline-none transition-all"
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-2.5 text-slate-400 hover:text-white"
+                      >
+                        <Icon name="x" className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {activeBoard && (
+                  <div className="relative">
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setShowThemeMenu((p) => !p)}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-200 text-sm font-medium transition-colors"
+                    >
+                      <Icon name="palette" className="w-4 h-4 text-purple-400" />
+                      <span className="hidden sm:inline">Tema do Quadro</span>
+                    </motion.button>
+
+                    {showThemeMenu && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setShowThemeMenu(false)}
+                        />
+                        <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#11111b]/95 backdrop-blur-2xl border border-purple-500/30 shadow-glow-lg p-3 z-20 space-y-1.5">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1 mb-2 flex items-center gap-1.5">
+                            <Icon name="sparkles" className="w-3.5 h-3.5 text-purple-400" />
+                            Atmosfera do Quadro
+                          </p>
+                          {BOARD_THEMES.map((t) => {
+                            const isSelected = activeBoard.themeId === t.id;
+                            return (
+                              <button
+                                key={t.id}
+                                onClick={() => {
+                                  updateActiveBoard({ ...activeBoard, themeId: t.id });
+                                  setShowThemeMenu(false);
+                                }}
+                                className={`w-full flex items-center justify-between p-2 rounded-xl border transition-all ${
+                                  isSelected
+                                    ? 'border-purple-400 bg-purple-500/20 text-white'
+                                    : 'border-white/5 hover:border-white/15 bg-white/5 text-slate-300'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <span
+                                    className={`w-6 h-6 rounded-lg bg-gradient-to-br ${t.previewGradient} border border-white/20`}
+                                  />
+                                  <span className="text-xs font-medium">{t.name}</span>
+                                </div>
+                                {isSelected && (
+                                  <Icon name="check" className="w-4 h-4 text-purple-400" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    setBoards(INITIAL_BOARDS);
+                    setActiveBoardId(INITIAL_BOARDS[0].id);
+                    setSearchQuery('');
+                  }}
+                  title="Restaurar quadros de demonstração"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition-colors"
+                >
+                  <Icon name="rotateCcw" className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="hidden md:inline">Restaurar Demo</span>
+                </motion.button>
+              </div>
+            </header>
+
+            {/* ========================================== */}
+            {/* TELA 1: GALERIA DE QUADROS (BOARDS)        */}
+            {/* ========================================== */}
+            {!activeBoard ? (
+              <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="relative overflow-hidden rounded-3xl border border-purple-500/25 bg-gradient-to-br from-purple-950/50 via-[#0e0e18] to-[#08080d] p-6 sm:p-10 mb-10 shadow-glow"
+                >
+                  <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-3 max-w-2xl">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-semibold">
+                        <Icon name="sparkles" className="w-3.5 h-3.5 text-purple-400" />
+                        <span>Workspace Sincronizado no LocalStorage</span>
+                      </div>
+                      <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+                        Seus Quadros de Projetos
+                      </h1>
+                      <p className="text-slate-300/90 text-sm sm:text-base leading-relaxed">
+                        Crie, selecione e personalize quadros com temas escuros, listas dinâmicas, checklists animados e Drag and Drop fluido.
+                      </p>
+                    </div>
+
+                    <motion.button
+                      whileHover={{ scale: 1.03, y: -2 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => setIsCreatingBoard(true)}
+                      className="self-start md:self-center flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-semibold text-sm shadow-glow transition-all"
+                    >
+                      <Icon name="plus" className="w-5 h-5" />
+                      <span>Novo Quadro</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
+
+                {/* Modal de Criar Novo Quadro */}
+                {isCreatingBoard && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.93, y: 15 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      className="w-full max-w-lg rounded-3xl bg-[#11111b] border border-purple-500/30 shadow-glow-lg p-6 sm:p-8 relative"
+                    >
+                      <button
+                        onClick={() => setIsCreatingBoard(false)}
+                        className="absolute top-5 right-5 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                      >
+                        <Icon name="x" className="w-4 h-4" />
+                      </button>
+
+                      <h2 className="text-lg font-bold text-white mb-1">Criar Novo Quadro</h2>
+                      <p className="text-xs text-slate-400 mb-6">
+                        Inicia automaticamente com as listas A Fazer, Em Andamento, Revisão e Concluído.
+                      </p>
+
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!newBoardTitle.trim()) return;
+                          const newBoard = {
+                            id: `board-${Date.now()}`,
+                            title: newBoardTitle.trim(),
+                            description:
+                              newBoardDesc.trim() || 'Quadro de gestão visual ágil e tarefas.',
+                            themeId: newBoardTheme,
+                            starred: false,
+                            columns: [
+                              { id: `col-1-${Date.now()}`, title: 'A Fazer', cardIds: [] },
+                              { id: `col-2-${Date.now()}`, title: 'Em Andamento', cardIds: [] },
+                              { id: `col-3-${Date.now()}`, title: 'Revisão', cardIds: [] },
+                              { id: `col-4-${Date.now()}`, title: 'Concluído', cardIds: [] },
+                            ],
+                            cards: {},
+                          };
+                          setBoards([newBoard, ...boards]);
+                          setActiveBoardId(newBoard.id);
+                          setNewBoardTitle('');
+                          setNewBoardDesc('');
+                          setIsCreatingBoard(false);
+                        }}
+                        className="space-y-5"
+                      >
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                            Título do Projeto *
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            autoFocus
+                            value={newBoardTitle}
+                            onChange={(e) => setNewBoardTitle(e.target.value)}
+                            placeholder="Ex: Redesign Plataforma Mobile Q4"
+                            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-purple-500 text-white placeholder-slate-500 outline-none text-sm"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                            Descrição Curta
+                          </label>
+                          <textarea
+                            rows={2}
+                            value={newBoardDesc}
+                            onChange={(e) => setNewBoardDesc(e.target.value)}
+                            placeholder="Objetivo principal ou escopo deste quadro..."
+                            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-purple-500 text-white placeholder-slate-500 outline-none text-sm resize-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2.5">
+                            Tema de Plano de Fundo
+                          </label>
+                          <div className="grid grid-cols-5 gap-2.5">
+                            {BOARD_THEMES.map((t) => {
+                              const active = newBoardTheme === t.id;
+                              return (
+                                <button
+                                  type="button"
+                                  key={t.id}
+                                  onClick={() => setNewBoardTheme(t.id)}
+                                  className={`h-14 rounded-xl bg-gradient-to-br ${
+                                    t.previewGradient
+                                  } border-2 transition-all flex items-center justify-center ${
+                                    active
+                                      ? 'border-white scale-105 shadow-glow'
+                                      : 'border-white/15 opacity-75 hover:opacity-100'
+                                  }`}
+                                  title={t.name}
+                                >
+                                  {active && <Icon name="check" className="w-5 h-5 text-white" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => setIsCreatingBoard(false)}
+                            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-sm font-medium"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-sm font-semibold shadow-glow"
+                          >
+                            Criar Quadro
+                          </button>
+                        </div>
+                      </form>
+                    </motion.div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2 mb-6">
+                  <Icon name="grid" className="w-5 h-5 text-purple-400" />
+                  <h2 className="text-lg font-bold text-white">
+                    Quadros Ativos ({boards.length})
+                  </h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {boards.map((board) => {
+                    const bt =
+                      BOARD_THEMES.find((t) => t.id === board.themeId) || BOARD_THEMES[0];
+                    const totalCards = Object.keys(board.cards).length;
+                    const totalColumns = board.columns.length;
+
+                    return (
+                      <motion.div
+                        key={board.id}
+                        whileHover={{ y: -5 }}
+                        onClick={() => setActiveBoardId(board.id)}
+                        className="group relative rounded-3xl bg-[#0f0f19] border border-white/10 hover:border-purple-500/50 overflow-hidden cursor-pointer shadow-lg hover:shadow-glow transition-all flex flex-col justify-between"
+                      >
+                        <div
+                          className={`h-28 w-full bg-gradient-to-br ${bt.previewGradient} p-5 flex items-start justify-between relative`}
+                        >
+                          <span className="px-2.5 py-1 rounded-lg bg-black/45 backdrop-blur-md border border-white/15 text-[11px] font-medium text-purple-200">
+                            {bt.name}
+                          </span>
+
+                          <div
+                            className="flex items-center gap-1.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() =>
+                                setBoards(
+                                  boards.map((b) =>
+                                    b.id === board.id ? { ...b, starred: !b.starred } : b
+                                  )
+                                )
+                              }
+                              className={`p-2 rounded-xl backdrop-blur-md border transition-colors ${
+                                board.starred
+                                  ? 'bg-amber-500/25 border-amber-400/50 text-amber-300'
+                                  : 'bg-black/40 border-white/10 text-slate-300 hover:text-white'
+                              }`}
+                            >
+                              <Icon name="star" className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() =>
+                                setBoards(boards.filter((b) => b.id !== board.id))
+                              }
+                              className="p-2 rounded-xl bg-black/40 hover:bg-rose-500/30 border border-white/10 hover:border-rose-500/50 text-slate-300 hover:text-rose-200 backdrop-blur-md transition-colors"
+                            >
+                              <Icon name="trash" className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="p-6 flex-1 flex flex-col justify-between space-y-5">
+                          <div>
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors">
+                                {board.title}
+                              </h3>
+                              <Icon
+                                name="arrowUpRight"
+                                className="w-5 h-5 text-slate-500 group-hover:text-purple-400 transition-colors"
+                              />
+                            </div>
+                            <p className="text-xs sm:text-sm text-slate-400 line-clamp-2 leading-relaxed">
+                              {board.description}
+                            </p>
+                          </div>
+
+                          <div className="pt-4 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
+                            <div className="flex items-center gap-2.5">
+                              <span className="px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 text-slate-300 font-medium">
+                                {totalColumns} listas
+                              </span>
+                              <span className="px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 font-medium">
+                                {totalCards} cartões
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-purple-300 font-medium">
+                              Abrir quadro →
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+
+                  <motion.button
+                    whileHover={{ scale: 1.01, y: -3 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setIsCreatingBoard(true)}
+                    className="min-h-[240px] rounded-3xl border-2 border-dashed border-purple-500/25 hover:border-purple-500/60 bg-purple-950/10 hover:bg-purple-950/20 flex flex-col items-center justify-center gap-3 p-6 text-slate-400 hover:text-purple-200 transition-all group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Icon name="plus" className="w-6 h-6 text-purple-400" />
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-sm text-white">Criar Novo Quadro</p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Adicione um novo espaço de projeto
+                      </p>
+                    </div>
+                  </motion.button>
+                </div>
+              </div>
+            ) : (
+              /* ========================================== */
+              /* TELA 2: VISUALIZAÇÃO DO QUADRO E COLUNAS   */
+              /* ========================================== */
+              <div
+                className={`min-h-[calc(100vh-4rem)] w-full ${theme.bgClass} flex flex-col transition-colors duration-500`}
+              >
+                {/* Sub-barra de Status e Filtro de Membros */}
+                <div className="px-4 lg:px-8 py-3.5 border-b border-white/5 bg-black/25 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center flex-wrap gap-3">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-xs font-semibold text-purple-200">
+                      <Icon name="sparkles" className="w-3.5 h-3.5 text-purple-400" />
+                      {activeBoard.columns.length} listas · {allCards.length} cartões
+                    </span>
+
+                    {totalCheckItems > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+                        <Icon name="checkSquare" className="w-3.5 h-3.5 text-emerald-400" />
+                        Subtarefas: {completedCheckItems}/{totalCheckItems} concluídas
+                      </span>
+                    )}
+
+                    <p className="text-xs text-slate-400 hidden xl:block truncate max-w-md">
+                      {activeBoard.description}
+                    </p>
+                  </div>
+
+                  {/* Filtro e Gerenciamento de Membros */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400 flex items-center gap-1 mr-1">
+                      <Icon name="users" className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="hidden sm:inline">Equipe:</span>
+                    </span>
+                    <div className="flex items-center -space-x-1.5">
+                      {members.map((member) => {
+                        const active = activeMemberFilter === member.id;
+                        return (
+                          <button
+                            key={member.id}
+                            onClick={() =>
+                              setActiveMemberFilter(active ? null : member.id)
+                            }
+                            title={`Filtrar por ${member.name} (${member.role})`}
+                            className={`rounded-full transition-all ${
+                              active
+                                ? 'ring-2 ring-white scale-110 z-10 shadow-glow'
+                                : 'border-2 border-[#0a0a12] opacity-90 hover:opacity-100 hover:-translate-y-0.5'
+                            }`}
+                          >
+                            <MemberAvatar member={member} sizeClass="w-7 h-7 text-[10px]" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {activeMemberFilter && (
+                      <button
+                        onClick={() => setActiveMemberFilter(null)}
+                        className="text-[11px] text-purple-300 hover:text-white underline ml-1"
+                      >
+                        Todos
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setIsTeamModalOpen(true)}
+                      className="ml-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/35 text-purple-200 text-xs font-semibold transition-colors"
+                    >
+                      <Icon name="plus" className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Membros</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Canvas Horizontal de Colunas */}
+                <div className="flex-1 overflow-x-auto px-4 lg:px-8 py-6">
+                  <div className="flex items-start gap-5 min-w-max pb-4">
+                    {activeBoard.columns.map((column) => {
+                      const columnCards = column.cardIds
+                        .map((id) => activeBoard.cards[id])
+                        .filter(Boolean)
+                        .filter((card) => {
+                          const matchesQuery =
+                            !searchQuery.trim() ||
+                            card.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            card.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            card.labels.some((l) =>
+                              l.name.toLowerCase().includes(searchQuery.toLowerCase())
+                            );
+                          const matchesMember =
+                            !activeMemberFilter ||
+                            card.memberIds.includes(activeMemberFilter);
+                          return matchesQuery && matchesMember;
+                        });
+
+                      const isColDragOver = dragOverColId === column.id;
+
+                      return (
+                        <motion.div
+                          layout
+                          key={column.id}
+                          initial={{ opacity: 0, scale: 0.93, y: 15 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            if (dragOverColId !== column.id) {
+                              setDragOverColId(column.id);
+                            }
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            handleDropCard(column.id, dragOverIndex);
+                          }}
+                          className={`w-80 shrink-0 flex flex-col max-h-[calc(100vh-11.5rem)] rounded-3xl bg-[#0d0d17]/85 backdrop-blur-xl border transition-all shadow-xl ${
+                            isColDragOver
+                              ? 'border-purple-400/70 ring-2 ring-purple-500/30 shadow-glow'
+                              : 'border-white/10'
+                          }`}
+                        >
+                          {/* Cabeçalho da Lista */}
+                          <div className="p-4 pb-3 flex items-center justify-between gap-2 border-b border-white/5">
+                            {editingColId === column.id ? (
+                              <div className="flex items-center gap-1.5 flex-1">
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  value={colTitleDraft}
+                                  onChange={(e) => setColTitleDraft(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') e.target.blur();
+                                    if (e.key === 'Escape') setEditingColId(null);
+                                  }}
+                                  onBlur={() => {
+                                    if (colTitleDraft.trim()) {
+                                      updateActiveBoard({
+                                        ...activeBoard,
+                                        columns: activeBoard.columns.map((c) =>
+                                          c.id === column.id
+                                            ? { ...c, title: colTitleDraft.trim() }
+                                            : c
+                                        ),
+                                      });
+                                    }
+                                    setEditingColId(null);
+                                  }}
+                                  className="w-full px-2.5 py-1 rounded-xl bg-white/10 border border-purple-500 text-sm font-bold text-white outline-none"
+                                />
+                              </div>
+                            ) : (
+                              <div
+                                onClick={() => {
+                                  setEditingColId(column.id);
+                                  setColTitleDraft(column.title);
+                                }}
+                                className="flex items-center gap-2.5 min-w-0 cursor-pointer group/title flex-1"
+                              >
+                                <span className="w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 to-fuchsia-400 shadow-glow" />
+                                <h3 className="text-sm font-bold text-white truncate group-hover/title:text-purple-300 transition-colors">
+                                  {column.title}
+                                </h3>
+                                <span className="px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/25 text-[11px] font-semibold text-purple-300">
+                                  {columnCards.length}
+                                </span>
+                              </div>
+                            )}
+
+                            {editingColId !== column.id && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => {
+                                    setEditingColId(column.id);
+                                    setColTitleDraft(column.title);
+                                  }}
+                                  title="Renomear lista"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                                >
+                                  <Icon name="edit" className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const remainingCards = { ...activeBoard.cards };
+                                    column.cardIds.forEach((id) => delete remainingCards[id]);
+                                    updateActiveBoard({
+                                      ...activeBoard,
+                                      columns: activeBoard.columns.filter(
+                                        (c) => c.id !== column.id
+                                      ),
+                                      cards: remainingCards,
+                                    });
+                                  }}
+                                  title="Excluir lista"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-300 hover:bg-rose-500/15 transition-colors"
+                                >
+                                  <Icon name="trash" className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Lista de Cartões com Drag and Drop Animado */}
+                          <div className="flex-1 overflow-y-auto px-3.5 pt-3 pb-2 min-h-[130px] space-y-3">
+                            {columnCards.map((card, index) => {
+                              const totalCheck = card.checklist.length;
+                              const doneCheck = card.checklist.filter((i) => i.completed).length;
+                              const progressPct =
+                                totalCheck > 0 ? Math.round((doneCheck / totalCheck) * 100) : 0;
+                              const allCompleted = totalCheck > 0 && doneCheck === totalCheck;
+                              const overdue = isDateOverdue(card.dueDate) && !allCompleted;
+                              const assignedMembers = members.filter((m) =>
+                                card.memberIds.includes(m.id)
+                              );
+                              const isBeingDragged = draggingCardId === card.id;
+
+                              return (
+                                <motion.div
+                                  layout
+                                  key={card.id}
+                                  draggable
+                                  onDragStart={(e) => {
+                                    setDraggingCardId(card.id);
+                                    setDragSourceColId(column.id);
+                                    e.dataTransfer.effectAllowed = 'move';
+                                  }}
+                                  onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDragOverColId(column.id);
+                                    setDragOverIndex(index);
+                                  }}
+                                  onDragEnd={() => {
+                                    setDraggingCardId(null);
+                                    setDragSourceColId(null);
+                                    setDragOverColId(null);
+                                    setDragOverIndex(null);
+                                  }}
+                                  onClick={() => setSelectedCardId(card.id)}
+                                  whileHover={{ y: -3, scale: 1.01 }}
+                                  animate={{
+                                    scale: isBeingDragged ? 1.04 : 1,
+                                    rotate: isBeingDragged ? 2 : 0,
+                                    opacity: isBeingDragged ? 0.65 : 1,
+                                  }}
+                                  transition={{ type: 'spring', stiffness: 400, damping: 26 }}
+                                  className={`group relative rounded-2xl p-4 cursor-grab active:cursor-grabbing border transition-colors ${
+                                    isBeingDragged
+                                      ? 'bg-[#1b1b2f] border-purple-400 shadow-card-drag ring-2 ring-purple-500/40'
+                                      : 'bg-[#131320]/90 hover:bg-[#181828] border-white/10 hover:border-purple-500/45 shadow-md'
+                                  }`}
+                                >
+                                  <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-purple-400/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                                  {/* Etiquetas */}
+                                  {card.labels.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-2.5">
+                                      {card.labels.map((label) => {
+                                        const style =
+                                          LABEL_COLOR_MAP[label.color] || LABEL_COLOR_MAP.purple;
+                                        return (
+                                          <span
+                                            key={label.id}
+                                            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[11px] font-semibold border ${style.bg} ${style.text} ${style.border}`}
+                                          >
+                                            <span
+                                              className={`w-1.5 h-1.5 rounded-full ${style.dot}`}
+                                            />
+                                            {label.name}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+
+                                  {/* Título do Cartão */}
+                                  <h4 className="text-sm font-semibold text-slate-100 group-hover:text-white leading-snug mb-2.5">
+                                    {card.title}
+                                  </h4>
+
+                                  {/* Barra de Progresso Animada do Checklist */}
+                                  {totalCheck > 0 && (
+                                    <div className="mb-3 space-y-1.5">
+                                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                                        <span className="flex items-center gap-1 font-medium">
+                                          <Icon
+                                            name="checkSquare"
+                                            className="w-3 h-3 text-purple-400"
+                                          />
+                                          Progresso
+                                        </span>
+                                        <span
+                                          className={`font-semibold ${
+                                            allCompleted ? 'text-emerald-400' : 'text-purple-300'
+                                          }`}
+                                        >
+                                          {progressPct}%
+                                        </span>
+                                      </div>
+                                      <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden">
+                                        <motion.div
+                                          initial={false}
+                                          animate={{ width: `${progressPct}%` }}
+                                          transition={{
+                                            type: 'spring',
+                                            stiffness: 260,
+                                            damping: 24,
+                                          }}
+                                          className={`h-full rounded-full ${
+                                            allCompleted
+                                              ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                                              : 'bg-gradient-to-r from-purple-500 via-violet-500 to-fuchsia-500'
+                                          }`}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Rodapé do Cartão: Data, Indicadores e Avatares */}
+                                  <div className="flex items-center justify-between gap-2 pt-1">
+                                    <div className="flex items-center flex-wrap gap-2 text-xs">
+                                      {card.dueDate && (
+                                        <span
+                                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-medium ${
+                                            allCompleted
+                                              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                                              : overdue
+                                              ? 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                                              : 'bg-white/5 border-white/10 text-slate-300'
+                                          }`}
+                                        >
+                                          <Icon name="calendar" className="w-3 h-3" />
+                                          {formatShortDate(card.dueDate)}
+                                        </span>
+                                      )}
+
+                                      {card.description && (
+                                        <span
+                                          title="Possui descrição detalhada"
+                                          className="inline-flex items-center p-1 rounded-md bg-white/5 text-slate-400"
+                                        >
+                                          <Icon name="alignLeft" className="w-3.5 h-3.5" />
+                                        </span>
+                                      )}
+
+                                      {totalCheck > 0 && (
+                                        <span
+                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-medium ${
+                                            allCompleted
+                                              ? 'bg-emerald-500/15 text-emerald-300'
+                                              : 'bg-white/5 text-slate-400'
+                                          }`}
+                                        >
+                                          {doneCheck}/{totalCheck}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {assignedMembers.length > 0 && (
+                                      <div className="flex items-center -space-x-2">
+                                        {assignedMembers.map((member) => (
+                                          <div
+                                            key={member.id}
+                                            title={`${member.name} (${member.role})`}
+                                            className="rounded-full border-2 border-[#131320] shadow-sm"
+                                          >
+                                            <MemberAvatar
+                                              member={member}
+                                              sizeClass="w-6 h-6 text-[10px]"
+                                            />
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+
+                            {columnCards.length === 0 && (
+                              <div className="h-24 rounded-2xl border border-dashed border-white/10 flex flex-col items-center justify-center text-center p-3 text-xs text-slate-500">
+                                Arraste um cartão para cá ou crie um novo abaixo
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Rodapé da Coluna: Criar Novo Cartão */}
+                          <div className="p-3 pt-2 border-t border-white/5">
+                            {addingCardColId === column.id ? (
+                              <form
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  if (!newCardTitle.trim()) return;
+                                  const newCardId = `card-${Date.now()}`;
+                                  const newCard = {
+                                    id: newCardId,
+                                    title: newCardTitle.trim(),
+                                    description: '',
+                                    labels: [DEFAULT_LABELS[1]],
+                                    dueDate: null,
+                                    checklist: [],
+                                    memberIds: activeMemberFilter
+                                      ? [activeMemberFilter]
+                                      : ['mem-1'],
+                                  };
+                                  updateActiveBoard({
+                                    ...activeBoard,
+                                    columns: activeBoard.columns.map((c) =>
+                                      c.id === column.id
+                                        ? { ...c, cardIds: [...c.cardIds, newCardId] }
+                                        : c
+                                    ),
+                                    cards: { ...activeBoard.cards, [newCardId]: newCard },
+                                  });
+                                  setNewCardTitle('');
+                                  setAddingCardColId(null);
+                                }}
+                                className="space-y-2.5"
+                              >
+                                <textarea
+                                  rows={2}
+                                  autoFocus
+                                  value={newCardTitle}
+                                  onChange={(e) => setNewCardTitle(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      e.target.form.requestSubmit();
+                                    }
+                                    if (e.key === 'Escape') setAddingCardColId(null);
+                                  }}
+                                  placeholder="Digite o título do cartão..."
+                                  className="w-full px-3 py-2 rounded-xl bg-[#161625] border border-purple-500/50 text-sm text-white placeholder-slate-400 outline-none resize-none"
+                                />
+                                <div className="flex items-center justify-between gap-2">
+                                  <button
+                                    type="submit"
+                                    className="flex-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-xs font-semibold shadow-glow"
+                                  >
+                                    Adicionar Cartão
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setAddingCardColId(null)}
+                                    className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                                  >
+                                    <Icon name="x" className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              <button
+                                onClick={() => setAddingCardColId(column.id)}
+                                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/5 hover:bg-purple-500/15 border border-white/5 hover:border-purple-500/30 text-slate-300 hover:text-purple-200 text-xs font-semibold transition-all"
+                              >
+                                <Icon name="plus" className="w-4 h-4 text-purple-400" />
+                                <span>Novo Cartão</span>
+                              </button>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+
+                    {/* Botão / Formulário de Nova Lista */}
+                    <div className="w-80 shrink-0">
+                      {isAddingColumn ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (!newColumnTitle.trim()) return;
+                            updateActiveBoard({
+                              ...activeBoard,
+                              columns: [
+                                ...activeBoard.columns,
+                                {
+                                  id: `col-${Date.now()}`,
+                                  title: newColumnTitle.trim(),
+                                  cardIds: [],
+                                },
+                              ],
+                            });
+                            setNewColumnTitle('');
+                            setIsAddingColumn(false);
+                          }}
+                          className="p-4 rounded-3xl bg-[#0d0d17]/90 backdrop-blur-xl border border-purple-500/40 shadow-glow space-y-3"
+                        >
+                          <input
+                            type="text"
+                            autoFocus
+                            value={newColumnTitle}
+                            onChange={(e) => setNewColumnTitle(e.target.value)}
+                            placeholder="Título da lista (ex: Homologação)"
+                            className="w-full px-3.5 py-2 rounded-xl bg-white/5 border border-white/10 focus:border-purple-500 text-sm text-white placeholder-slate-400 outline-none"
+                          />
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="submit"
+                              className="flex-1 py-2 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-xs font-semibold shadow-glow"
+                            >
+                              Criar Lista
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setIsAddingColumn(false)}
+                              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                            >
+                              <Icon name="x" className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: 1.02, y: -2 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setIsAddingColumn(true)}
+                          className="w-full py-3.5 px-4 rounded-3xl border-2 border-dashed border-purple-500/30 hover:border-purple-400/60 bg-purple-950/15 hover:bg-purple-950/30 backdrop-blur-md flex items-center justify-center gap-2 text-purple-200 font-semibold text-sm transition-all shadow-lg"
+                        >
+                          <Icon name="plus" className="w-4 h-4 text-purple-400" />
+                          <span>Adicionar Nova Lista</span>
+                        </motion.button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modal de Detalhes do Cartão */}
+                <CardModal
+                  card={selectedCard}
+                  columnTitle={selectedCardColumn}
+                  members={members}
+                  availableLabels={availableLabels}
+                  onCreateLabel={(newLbl) =>
+                    setAvailableLabels((prev) => [...prev, newLbl])
+                  }
+                  onDeleteLabel={(lblId) => {
+                    setAvailableLabels((prev) => prev.filter((l) => l.id !== lblId));
+                    const updatedCards = { ...activeBoard.cards };
+                    Object.keys(updatedCards).forEach((cid) => {
+                      updatedCards[cid] = {
+                        ...updatedCards[cid],
+                        labels: updatedCards[cid].labels.filter((l) => l.id !== lblId),
+                      };
+                    });
+                    updateActiveBoard({ ...activeBoard, cards: updatedCards });
+                  }}
+                  onOpenTeamModal={() => setIsTeamModalOpen(true)}
+                  onClose={() => setSelectedCardId(null)}
+                  onUpdateCard={(updatedCard) =>
+                    updateActiveBoard({
+                      ...activeBoard,
+                      cards: { ...activeBoard.cards, [updatedCard.id]: updatedCard },
+                    })
+                  }
+                  onDeleteCard={(cardId) => {
+                    const remaining = { ...activeBoard.cards };
+                    delete remaining[cardId];
+                    updateActiveBoard({
+                      ...activeBoard,
+                      columns: activeBoard.columns.map((c) => ({
+                        ...c,
+                        cardIds: c.cardIds.filter((id) => id !== cardId),
+                      })),
+                      cards: remaining,
+                    });
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Modal Global de Gerenciamento de Membros */}
+            <TeamModal
+              isOpen={isTeamModalOpen}
+              onClose={() => setIsTeamModalOpen(false)}
+              members={members}
+              onAddMember={(newMember) => setMembers((prev) => [...prev, newMember])}
+              onRemoveMember={(memberId) => {
+                setMembers((prev) => prev.filter((m) => m.id !== memberId));
+                if (activeMemberFilter === memberId) setActiveMemberFilter(null);
+              }}
+            />
+          </div>
+        );
+      }
+
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+  </body>
+</html>
