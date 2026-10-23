@@ -226,6 +226,36 @@
               <circle cx="15" cy="19" r="1" />
             </>
           ),
+          book: (
+            <>
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </>
+          ),
+          truck: (
+            <>
+              <rect x="1" y="3" width="15" height="13" />
+              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+              <circle cx="5.5" cy="18.5" r="2.5" />
+              <circle cx="18.5" cy="18.5" r="2.5" />
+            </>
+          ),
+          wrench: (
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          ),
+          clock: (
+            <>
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </>
+          ),
+          alert: (
+            <>
+              <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </>
+          ),
         };
 
         return (
@@ -777,6 +807,1011 @@
       }
 
       // ==========================================
+      // CATEGORIAS, STATUS E DADOS INICIAIS DO BOOK DE HISTÓRICO
+      // ==========================================
+      const DEFAULT_BOOK_CATEGORIES = [
+        {
+          id: 'manutencao',
+          name: 'Manutenção / Quebra',
+          color: 'rose',
+          icon: 'wrench',
+        },
+        {
+          id: 'frota',
+          name: 'Frota / Veículo',
+          color: 'amber',
+          icon: 'truck',
+        },
+        {
+          id: 'equipe',
+          name: 'Equipe / Operação',
+          color: 'purple',
+          icon: 'users',
+        },
+        {
+          id: 'incidente',
+          name: 'Incidente / Atraso',
+          color: 'fuchsia',
+          icon: 'alert',
+        },
+        {
+          id: 'concluido',
+          name: 'Resolução / Entrega',
+          color: 'emerald',
+          icon: 'checkSquare',
+        },
+        {
+          id: 'geral',
+          name: 'Registro Geral',
+          color: 'cyan',
+          icon: 'book',
+        },
+      ];
+
+      const DEFAULT_BOOK_STATUSES = [
+        {
+          id: 'pendente',
+          name: '⏳ Em Aberto / Em Manutenção',
+          color: 'amber',
+        },
+        {
+          id: 'oficina',
+          name: '🔧 Aguardando Peça / Oficina',
+          color: 'rose',
+        },
+        {
+          id: 'em_rota',
+          name: '🚚 Substituído / Em Operação',
+          color: 'purple',
+        },
+        {
+          id: 'resolvido',
+          name: '✅ Resolvido / Concluído',
+          color: 'emerald',
+        },
+      ];
+
+      const INITIAL_BOOK_LOGS = [
+        {
+          id: 'log-1',
+          title: 'Caminhão 04 quebrou na Rota Sul (Falha na Bomba Injetora)',
+          description:
+            'Durante o deslocamento pela BR-116 (km 42), o veículo perdeu potência. Foi acionado o socorro mecânico às 14h20 e enviado o caminhão reserva para concluir as entregas da equipe sem perda de carga.',
+          date: '2026-10-22',
+          time: '14:20',
+          categoryId: 'manutencao',
+          vehicleOrAsset: 'Caminhão VW 24.280 · Placa ABC-1D23 (Frota 04)',
+          teamOrLocation: 'Equipe Rota Sul',
+          memberId: 'mem-4',
+          status: 'resolvido',
+          createdAt: '2026-10-22T14:20:00.000Z',
+        },
+        {
+          id: 'log-2',
+          title: 'Troca preventiva de pneus e revisão de freios — Frota 02',
+          description:
+            'Veículo encaminhado para a oficina central após relato de vibração pelo motorista no turno da manhã. Previsão de liberação às 18h00.',
+          date: '2026-10-21',
+          time: '09:15',
+          categoryId: 'frota',
+          vehicleOrAsset: 'Mercedes Atego 1719 · Placa XYZ-9F88 (Frota 02)',
+          teamOrLocation: 'Equipe Logística Norte',
+          memberId: 'mem-2',
+          status: 'pendente',
+          createdAt: '2026-10-21T09:15:00.000Z',
+        },
+        {
+          id: 'log-3',
+          title: 'Realocação de Equipe por bloqueio na via principal',
+          description:
+            'Obras na rodovia causaram retenção de 1h30. A equipe desviou pela rota alternativa leste e comunicou os clientes.',
+          date: '2026-10-19',
+          time: '11:40',
+          categoryId: 'equipe',
+          vehicleOrAsset: 'Frota 07 · Furgão Sprinter',
+          teamOrLocation: 'Equipe Express Leste',
+          memberId: 'mem-1',
+          status: 'resolvido',
+          createdAt: '2026-10-19T11:40:00.000Z',
+        },
+      ];
+
+      function formatFullDateBR(dateStr) {
+        if (!dateStr) return '';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        return `${parts[2]}/${parts[1]}/${parts[0]}`;
+      }
+
+      // ==========================================
+      // COMPONENTE: BOOK DE HISTÓRICO E OCORRÊNCIAS (100% EDITÁVEL)
+      // ==========================================
+      function HistoryBookView({
+        logs,
+        members,
+        categories,
+        statuses,
+        onUpdateCategories,
+        onUpdateStatuses,
+        onAddLog,
+        onUpdateLog,
+        onDeleteLog,
+        onOpenTeamModal,
+      }) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const nowTimeStr = new Date().toTimeString().slice(0, 5);
+
+        const [isFormOpen, setIsFormOpen] = useState(false);
+        const [editingLogId, setEditingLogId] = useState(null);
+
+        // Campos do Formulário (Criação e Edição)
+        const [title, setTitle] = useState('');
+        const [description, setDescription] = useState('');
+        const [date, setDate] = useState(todayStr);
+        const [time, setTime] = useState(nowTimeStr);
+        const [categoryId, setCategoryId] = useState(categories[0]?.id || 'manutencao');
+        const [vehicleOrAsset, setVehicleOrAsset] = useState('');
+        const [teamOrLocation, setTeamOrLocation] = useState('');
+        const [memberId, setMemberId] = useState('');
+        const [status, setStatus] = useState(statuses[0]?.id || 'pendente');
+
+        // Gerenciador de Status Personalizados
+        const [showStatusManager, setShowStatusManager] = useState(false);
+        const [newStatusName, setNewStatusName] = useState('');
+        const [newStatusColor, setNewStatusColor] = useState('purple');
+
+        // Gerenciador de Categorias Personalizadas
+        const [showCategoryManager, setShowCategoryManager] = useState(false);
+        const [newCategoryName, setNewCategoryName] = useState('');
+        const [newCategoryColor, setNewCategoryColor] = useState('purple');
+
+        // Filtros de pesquisa do Book
+        const [searchText, setSearchText] = useState('');
+        const [filterCategory, setFilterCategory] = useState('all');
+        const [filterMember, setFilterMember] = useState('all');
+        const [filterDate, setFilterDate] = useState('');
+        const [filterStatus, setFilterStatus] = useState('all');
+
+        const openNewForm = () => {
+          setEditingLogId(null);
+          setTitle('');
+          setDescription('');
+          setDate(todayStr);
+          setTime(new Date().toTimeString().slice(0, 5));
+          setCategoryId(categories[0]?.id || 'manutencao');
+          setVehicleOrAsset('');
+          setTeamOrLocation('');
+          setMemberId('');
+          setStatus(statuses[0]?.id || 'pendente');
+          setIsFormOpen(true);
+        };
+
+        const openEditForm = (log) => {
+          setEditingLogId(log.id);
+          setTitle(log.title || '');
+          setDescription(log.description || '');
+          setDate(log.date || todayStr);
+          setTime(log.time || '12:00');
+          setCategoryId(log.categoryId || categories[0]?.id || 'manutencao');
+          setVehicleOrAsset(log.vehicleOrAsset || '');
+          setTeamOrLocation(log.teamOrLocation || '');
+          setMemberId(log.memberId || '');
+          setStatus(log.status || statuses[0]?.id || 'pendente');
+          setIsFormOpen(true);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        const handleFormSubmit = (e) => {
+          e.preventDefault();
+          if (!title.trim()) return;
+
+          const payload = {
+            id: editingLogId || `log-${Date.now()}`,
+            title: title.trim(),
+            description: description.trim(),
+            date: date || todayStr,
+            time: time || '12:00',
+            categoryId,
+            vehicleOrAsset: vehicleOrAsset.trim(),
+            teamOrLocation: teamOrLocation.trim(),
+            memberId: memberId || null,
+            status,
+            createdAt: new Date().toISOString(),
+          };
+
+          if (editingLogId) {
+            onUpdateLog(payload);
+          } else {
+            onAddLog(payload);
+          }
+
+          setEditingLogId(null);
+          setTitle('');
+          setDescription('');
+          setVehicleOrAsset('');
+          setTeamOrLocation('');
+          setIsFormOpen(false);
+        };
+
+        const handleAddCustomStatus = () => {
+          if (!newStatusName.trim()) return;
+          const newSt = {
+            id: `st-${Date.now()}`,
+            name: newStatusName.trim(),
+            color: newStatusColor,
+          };
+          onUpdateStatuses([...statuses, newSt]);
+          setStatus(newSt.id);
+          setNewStatusName('');
+        };
+
+        const handleRenameStatus = (stId, newName) => {
+          onUpdateStatuses(
+            statuses.map((s) => (s.id === stId ? { ...s, name: newName } : s))
+          );
+        };
+
+        const handleDeleteStatus = (stId) => {
+          if (statuses.length <= 1) return;
+          const remaining = statuses.filter((s) => s.id !== stId);
+          onUpdateStatuses(remaining);
+          if (status === stId) setStatus(remaining[0].id);
+        };
+
+        const handleAddCustomCategory = () => {
+          if (!newCategoryName.trim()) return;
+          const newCat = {
+            id: `cat-${Date.now()}`,
+            name: newCategoryName.trim(),
+            color: newCategoryColor,
+            icon: 'book',
+          };
+          onUpdateCategories([...categories, newCat]);
+          setCategoryId(newCat.id);
+          setNewCategoryName('');
+        };
+
+        const handleRenameCategory = (catId, newName) => {
+          onUpdateCategories(
+            categories.map((c) => (c.id === catId ? { ...c, name: newName } : c))
+          );
+        };
+
+        const handleDeleteCategory = (catId) => {
+          if (categories.length <= 1) return;
+          const remaining = categories.filter((c) => c.id !== catId);
+          onUpdateCategories(remaining);
+          if (categoryId === catId) setCategoryId(remaining[0].id);
+        };
+
+        const filteredLogs = logs
+          .filter((log) => {
+            const memberObj = members.find((m) => m.id === log.memberId);
+            const catObj = categories.find((c) => c.id === log.categoryId);
+            const stObj = statuses.find((s) => s.id === log.status);
+            const q = searchText.trim().toLowerCase();
+
+            const matchesText =
+              !q ||
+              log.title.toLowerCase().includes(q) ||
+              (log.description || '').toLowerCase().includes(q) ||
+              (log.vehicleOrAsset || '').toLowerCase().includes(q) ||
+              (log.teamOrLocation || '').toLowerCase().includes(q) ||
+              (memberObj?.name || '').toLowerCase().includes(q) ||
+              (catObj?.name || '').toLowerCase().includes(q) ||
+              (stObj?.name || '').toLowerCase().includes(q) ||
+              formatFullDateBR(log.date).includes(q);
+
+            const matchesCategory =
+              filterCategory === 'all' || log.categoryId === filterCategory;
+            const matchesMember =
+              filterMember === 'all' || log.memberId === filterMember;
+            const matchesDate = !filterDate || log.date === filterDate;
+            const matchesStatus =
+              filterStatus === 'all' || log.status === filterStatus;
+
+            return (
+              matchesText &&
+              matchesCategory &&
+              matchesMember &&
+              matchesDate &&
+              matchesStatus
+            );
+          })
+          .sort((a, b) => {
+            const dtA = `${a.date}T${a.time || '00:00'}`;
+            const dtB = `${b.date}T${b.time || '00:00'}`;
+            return dtB.localeCompare(dtA);
+          });
+
+        return (
+          <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+            {/* Banner Superior do Book */}
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative overflow-hidden rounded-3xl border border-purple-500/30 bg-gradient-to-br from-purple-950/60 via-[#0e0e1a] to-[#08080e] p-6 sm:p-8 shadow-glow"
+            >
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-2.5 max-w-2xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-semibold">
+                    <Icon name="book" className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Book Operacional & Diário de Bordo</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                    Histórico de Ocorrências, Frota e Equipes
+                  </h1>
+                  <p className="text-slate-300/90 text-sm leading-relaxed">
+                    Registre e edite quebras de caminhão, manutenções, trocas de turno ou imprevistos com categorias e status 100% personalizáveis.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.03, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      if (isFormOpen) {
+                        setIsFormOpen(false);
+                        setEditingLogId(null);
+                      } else {
+                        openNewForm();
+                      }
+                    }}
+                    className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-fuchsia-600 hover:from-purple-500 hover:to-fuchsia-500 text-white font-semibold text-sm shadow-glow transition-all"
+                  >
+                    <Icon name={isFormOpen ? 'x' : 'plus'} className="w-5 h-5" />
+                    <span>
+                      {isFormOpen ? 'Fechar Formulário' : 'Novo Registro no Book'}
+                    </span>
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Formulário de Novo Registro ou Edição Completa */}
+            <AnimatePresence>
+              {isFormOpen && (
+                <motion.form
+                  initial={{ opacity: 0, y: -10, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -10, height: 0 }}
+                  onSubmit={handleFormSubmit}
+                  className="rounded-3xl bg-[#11111e] border border-purple-500/40 shadow-glow-lg p-6 sm:p-8 space-y-5 overflow-hidden"
+                >
+                  <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center">
+                        <Icon
+                          name={editingLogId ? 'edit' : 'book'}
+                          className="w-5 h-5 text-purple-400"
+                        />
+                      </div>
+                      <div>
+                        <h2 className="text-base sm:text-lg font-bold text-white">
+                          {editingLogId
+                            ? 'Editar Ocorrência do Histórico'
+                            : 'Registrar Nova Ocorrência no Histórico'}
+                        </h2>
+                        <p className="text-xs text-slate-400">
+                          Todos os campos, categorias e status abaixo são editáveis
+                        </p>
+                      </div>
+                    </div>
+                    {editingLogId && (
+                      <span className="px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-xs font-bold">
+                        Modo Edição
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        O que aconteceu? (Título do Registro) *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        autoFocus
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Ex: Caminhão 04 quebrou na rota Sul (Embreagem / Pneu / Motor)"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black/40 border border-white/10 focus:border-purple-500 text-sm text-white placeholder-slate-500 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                          Categoria da Ocorrência
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowCategoryManager((p) => !p)}
+                          className="text-[11px] font-semibold text-purple-400 hover:text-purple-300"
+                        >
+                          {showCategoryManager ? 'Fechar' : '✏️ Editar / + Nova'}
+                        </button>
+                      </div>
+                      <select
+                        value={categoryId}
+                        onChange={(e) => setCategoryId(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-[#181828] border border-white/10 focus:border-purple-500 text-sm text-white outline-none"
+                      >
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Painel para Criar / Editar Categorias */}
+                  {showCategoryManager && (
+                    <div className="p-4 rounded-2xl bg-black/40 border border-purple-500/30 space-y-3">
+                      <p className="text-xs font-bold uppercase tracking-wider text-purple-300">
+                        Gerenciar / Editar Categorias
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <input
+                          type="text"
+                          value={newCategoryName}
+                          onChange={(e) => setNewCategoryName(e.target.value)}
+                          placeholder="Digite o nome de uma nova categoria..."
+                          className="flex-1 min-w-[200px] px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
+                        />
+                        <div className="flex items-center gap-1">
+                          {Object.keys(LABEL_COLOR_MAP).map((c) => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => setNewCategoryColor(c)}
+                              className={`w-5 h-5 rounded-full ${LABEL_COLOR_MAP[c].solid} ${
+                                newCategoryColor === c ? 'ring-2 ring-white scale-110' : 'opacity-60'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleAddCustomCategory}
+                          className="px-3 py-1.5 rounded-xl bg-purple-600 text-white text-xs font-semibold"
+                        >
+                          + Adicionar Categoria
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+                        {categories.map((c) => (
+                          <div
+                            key={c.id}
+                            className="flex items-center gap-1.5 p-1.5 rounded-xl bg-white/5 border border-white/10"
+                          >
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                (LABEL_COLOR_MAP[c.color] || LABEL_COLOR_MAP.purple).dot
+                              }`}
+                            />
+                            <input
+                              type="text"
+                              value={c.name}
+                              onChange={(e) => handleRenameCategory(c.id, e.target.value)}
+                              className="w-full bg-transparent text-xs text-white outline-none"
+                            />
+                            {categories.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCategory(c.id)}
+                                className="text-slate-400 hover:text-rose-400 px-1"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Veículo / Placa / Equipamento
+                      </label>
+                      <input
+                        type="text"
+                        value={vehicleOrAsset}
+                        onChange={(e) => setVehicleOrAsset(e.target.value)}
+                        placeholder="Ex: Caminhão 04 · Placa ABC-1D23"
+                        className="w-full px-3.5 py-2 rounded-xl bg-black/40 border border-white/10 focus:border-purple-500 text-sm text-white placeholder-slate-500 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                        Equipe / Setor / Rota
+                      </label>
+                      <input
+                        type="text"
+                        value={teamOrLocation}
+                        onChange={(e) => setTeamOrLocation(e.target.value)}
+                        placeholder="Ex: PI-FAO-V001M · Rota Sul"
+                        className="w-full px-3.5 py-2 rounded-xl bg-black/40 border border-white/10 focus:border-purple-500 text-sm text-white placeholder-slate-500 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                          Responsável / Motorista
+                        </label>
+                        <button
+                          type="button"
+                          onClick={onOpenTeamModal}
+                          className="text-[11px] text-purple-400 hover:text-purple-300 font-semibold"
+                        >
+                          ✏️ Equipe / + Novo
+                        </button>
+                      </div>
+                      <select
+                        value={memberId}
+                        onChange={(e) => setMemberId(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl bg-[#181828] border border-white/10 focus:border-purple-500 text-sm text-white outline-none"
+                      >
+                        <option value="">Sem responsável específico</option>
+                        {members.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name} ({m.role})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                          Data *
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          className="w-full px-2.5 py-2 rounded-xl bg-black/40 border border-white/10 focus:border-purple-500 text-xs text-white outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                          Hora
+                        </label>
+                        <input
+                          type="time"
+                          value={time}
+                          onChange={(e) => setTime(e.target.value)}
+                          className="w-full px-2.5 py-2 rounded-xl bg-black/40 border border-white/10 focus:border-purple-500 text-xs text-white outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                      Detalhes da Ocorrência / Providências Tomadas
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Descreva o que houve, qual peça quebrou, quem foi acionado, custos, oficina ou como foi resolvido..."
+                      className="w-full p-3.5 rounded-2xl bg-black/40 border border-white/10 focus:border-purple-500 text-sm text-slate-200 placeholder-slate-500 outline-none resize-y"
+                    />
+                  </div>
+
+                  {/* SEÇÃO DE STATUS EDITÁVEL E PERSONALIZÁVEL */}
+                  <div className="space-y-3 pt-3 border-t border-white/10">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-300 mr-1">
+                          Status:
+                        </span>
+                        {statuses.map((st) => {
+                          const stStyle =
+                            LABEL_COLOR_MAP[st.color] || LABEL_COLOR_MAP.purple;
+                          const isSelected = status === st.id;
+                          return (
+                            <button
+                              key={st.id}
+                              type="button"
+                              onClick={() => setStatus(st.id)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                                isSelected
+                                  ? `${stStyle.bg} ${stStyle.border} ${stStyle.text} ring-1 ring-white/40 scale-105`
+                                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              {st.name}
+                            </button>
+                          );
+                        })}
+
+                        <button
+                          type="button"
+                          onClick={() => setShowStatusManager((p) => !p)}
+                          className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/35 text-purple-300 text-xs font-semibold transition-all"
+                        >
+                          {showStatusManager
+                            ? 'Fechar Edição de Status'
+                            : '✏️ Editar / + Novo Status'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2.5 ml-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsFormOpen(false);
+                            setEditingLogId(null);
+                          }}
+                          className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-xs font-bold shadow-glow"
+                        >
+                          {editingLogId
+                            ? 'Salvar Alterações'
+                            : 'Salvar no Book de Histórico'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Painel para Criar, Renomear ou Excluir Status */}
+                    {showStatusManager && (
+                      <div className="p-4 rounded-2xl bg-black/45 border border-purple-500/35 space-y-3">
+                        <p className="text-xs font-bold uppercase tracking-wider text-purple-300">
+                          Personalizar Opções de Status (Adicione novos ou clique nos nomes abaixo para editar)
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            type="text"
+                            value={newStatusName}
+                            onChange={(e) => setNewStatusName(e.target.value)}
+                            placeholder="Ex: 🚛 Aguardando Guincho / Em Orçamento / Liberado..."
+                            className="flex-1 min-w-[220px] px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-white outline-none"
+                          />
+                          <div className="flex items-center gap-1">
+                            {Object.keys(LABEL_COLOR_MAP).map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => setNewStatusColor(c)}
+                                className={`w-5 h-5 rounded-full ${LABEL_COLOR_MAP[c].solid} ${
+                                  newStatusColor === c
+                                    ? 'ring-2 ring-white scale-110'
+                                    : 'opacity-60'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleAddCustomStatus}
+                            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold"
+                          >
+                            + Criar Status
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 pt-1">
+                          {statuses.map((st) => (
+                            <div
+                              key={st.id}
+                              className="flex items-center gap-1.5 p-2 rounded-xl bg-white/5 border border-white/10"
+                            >
+                              <span
+                                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                                  (LABEL_COLOR_MAP[st.color] || LABEL_COLOR_MAP.purple).dot
+                                }`}
+                              />
+                              <input
+                                type="text"
+                                value={st.name}
+                                onChange={(e) => handleRenameStatus(st.id, e.target.value)}
+                                className="w-full bg-transparent text-xs text-white outline-none"
+                                title="Edite o texto deste status"
+                              />
+                              {statuses.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteStatus(st.id)}
+                                  title="Excluir este status"
+                                  className="text-slate-400 hover:text-rose-400 px-1 font-bold"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </motion.form>
+              )}
+            </AnimatePresence>
+
+            {/* Barra de Pesquisa e Filtros Inteligentes */}
+            <div className="rounded-3xl bg-[#0e0e18] border border-white/10 p-4 sm:p-5 space-y-4 shadow-lg">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+                {/* Busca por palavra-chave */}
+                <div className="md:col-span-5 relative flex items-center">
+                  <span className="text-purple-400 absolute left-3.5 pointer-events-none">
+                    <Icon name="search" className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="text"
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    placeholder="Pesquisar por caminhão, placa, equipe, defeito, status..."
+                    className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-black/50 border border-white/10 focus:border-purple-500 text-sm text-white placeholder-slate-400 outline-none"
+                  />
+                  {searchText && (
+                    <button
+                      onClick={() => setSearchText('')}
+                      className="absolute right-3 text-slate-400 hover:text-white"
+                    >
+                      <Icon name="x" className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filtro por Categoria */}
+                <div className="md:col-span-3">
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black/50 border border-white/10 focus:border-purple-500 text-xs sm:text-sm text-slate-200 outline-none"
+                  >
+                    <option value="all">Todas as Categorias</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filtro por Membro / Responsável */}
+                <div className="md:col-span-2">
+                  <select
+                    value={filterMember}
+                    onChange={(e) => setFilterMember(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-black/50 border border-white/10 focus:border-purple-500 text-xs sm:text-sm text-slate-200 outline-none"
+                  >
+                    <option value="all">Todos Responsáveis</option>
+                    {members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filtro por Data Específica */}
+                <div className="md:col-span-2 flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    title="Filtrar por dia específico"
+                    className="w-full px-3 py-2.5 rounded-xl bg-black/50 border border-white/10 focus:border-purple-500 text-xs text-slate-200 outline-none"
+                  />
+                  {(searchText ||
+                    filterCategory !== 'all' ||
+                    filterMember !== 'all' ||
+                    filterDate ||
+                    filterStatus !== 'all') && (
+                    <button
+                      onClick={() => {
+                        setSearchText('');
+                        setFilterCategory('all');
+                        setFilterMember('all');
+                        setFilterDate('');
+                        setFilterStatus('all');
+                      }}
+                      title="Limpar todos os filtros"
+                      className="p-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 shrink-0"
+                    >
+                      <Icon name="rotateCcw" className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Pílulas rápidas de Status Dinâmicas */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setFilterStatus('all')}
+                    className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all ${
+                      filterStatus === 'all'
+                        ? 'bg-purple-500/20 border-purple-400 text-white'
+                        : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Todos ({logs.length})
+                  </button>
+                  {statuses.map((st) => {
+                    const count = logs.filter((l) => l.status === st.id).length;
+                    const stStyle =
+                      LABEL_COLOR_MAP[st.color] || LABEL_COLOR_MAP.purple;
+                    return (
+                      <button
+                        key={st.id}
+                        onClick={() => setFilterStatus(st.id)}
+                        className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all ${
+                          filterStatus === st.id
+                            ? `${stStyle.bg} ${stStyle.border} ${stStyle.text}`
+                            : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {st.name} ({count})
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <span className="text-xs text-slate-400">
+                  Exibindo <strong className="text-white">{filteredLogs.length}</strong> registro(s)
+                </span>
+              </div>
+            </div>
+
+            {/* Linha do Tempo (Timeline de Registros) */}
+            <div className="space-y-4">
+              {filteredLogs.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-white/15 bg-[#0d0d16] p-12 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center mx-auto">
+                    <Icon name="book" className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-white">
+                    Nenhum registro encontrado para esta busca
+                  </h3>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    Tente mudar os termos pesquisados ou clique em "Novo Registro no Book" para cadastrar uma nova ocorrência.
+                  </p>
+                </div>
+              ) : (
+                filteredLogs.map((log) => {
+                  const cat =
+                    categories.find((c) => c.id === log.categoryId) ||
+                    categories[0] || { name: 'Geral', color: 'purple', icon: 'book' };
+                  const style = LABEL_COLOR_MAP[cat.color] || LABEL_COLOR_MAP.purple;
+                  const member = members.find((m) => m.id === log.memberId);
+                  const currentStatus =
+                    statuses.find((s) => s.id === log.status) ||
+                    statuses[0] || { id: log.status, name: log.status, color: 'amber' };
+                  const statusStyle =
+                    LABEL_COLOR_MAP[currentStatus.color] || LABEL_COLOR_MAP.amber;
+
+                  return (
+                    <motion.div
+                      layout
+                      key={log.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="group relative rounded-3xl bg-[#10101c] hover:bg-[#141424] border border-white/10 hover:border-purple-500/40 p-5 sm:p-6 shadow-lg transition-all"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div className="space-y-2.5 flex-1">
+                          {/* Badges de Categoria, Data/Hora, Veículo e Equipe */}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold border ${style.bg} ${style.text} ${style.border}`}
+                            >
+                              <Icon name={cat.icon || 'book'} className="w-3.5 h-3.5" />
+                              {cat.name}
+                            </span>
+
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-slate-200">
+                              <Icon name="calendar" className="w-3.5 h-3.5 text-purple-400" />
+                              {formatFullDateBR(log.date)}
+                              {log.time ? ` às ${log.time}` : ''}
+                            </span>
+
+                            {log.vehicleOrAsset && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs font-semibold text-amber-200">
+                                <Icon name="truck" className="w-3.5 h-3.5 text-amber-400" />
+                                {log.vehicleOrAsset}
+                              </span>
+                            )}
+
+                            {log.teamOrLocation && (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/10 border border-purple-500/25 text-xs font-semibold text-purple-200">
+                                <Icon name="users" className="w-3.5 h-3.5 text-purple-400" />
+                                {log.teamOrLocation}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Título da Ocorrência */}
+                          <h3 className="text-base sm:text-lg font-bold text-white leading-snug">
+                            {log.title}
+                          </h3>
+
+                          {/* Descrição Completa */}
+                          {log.description && (
+                            <p className="text-sm text-slate-300/90 leading-relaxed whitespace-pre-line">
+                              {log.description}
+                            </p>
+                          )}
+
+                          {/* Rodapé com Responsável */}
+                          {member && (
+                            <div className="flex items-center gap-2 pt-2">
+                              <MemberAvatar member={member} sizeClass="w-6 h-6 text-[10px]" />
+                              <span className="text-xs text-slate-400">
+                                Responsável / Relator:{' '}
+                                <strong className="text-slate-200">{member.name}</strong> ({member.role})
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Ações Direita: Mudar Status, Editar Tudo e Excluir */}
+                        <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0">
+                          <select
+                            value={log.status}
+                            onChange={(e) =>
+                              onUpdateLog({ ...log, status: e.target.value })
+                            }
+                            title="Alterar status rapidamente"
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold border outline-none cursor-pointer ${statusStyle.bg} ${statusStyle.border} ${statusStyle.text}`}
+                          >
+                            {statuses.map((st) => (
+                              <option
+                                key={st.id}
+                                value={st.id}
+                                className="bg-[#11111e] text-white"
+                              >
+                                {st.name}
+                              </option>
+                            ))}
+                          </select>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => openEditForm(log)}
+                              title="Editar todas as informações deste registro"
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 text-purple-200 text-xs font-semibold transition-colors"
+                            >
+                              <Icon name="edit" className="w-3.5 h-3.5" />
+                              <span>Editar</span>
+                            </button>
+
+                            <button
+                              onClick={() => onDeleteLog(log.id)}
+                              title="Excluir registro do histórico"
+                              className="p-2 rounded-xl bg-white/5 hover:bg-rose-500/20 border border-white/5 hover:border-rose-500/30 text-slate-400 hover:text-rose-300 transition-colors"
+                            >
+                              <Icon name="trash" className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // ==========================================
       // MODAL DETALHADO DO CARTÃO
       // ==========================================
       function CardModal({
@@ -1209,6 +2244,19 @@
           'nebulaflow_labels_v1',
           DEFAULT_LABELS
         );
+        const [bookLogs, setBookLogs] = useLocalStorage(
+          'nebulaflow_book_logs_v1',
+          INITIAL_BOOK_LOGS
+        );
+        const [bookCategories, setBookCategories] = useLocalStorage(
+          'nebulaflow_book_categories_v1',
+          DEFAULT_BOOK_CATEGORIES
+        );
+        const [bookStatuses, setBookStatuses] = useLocalStorage(
+          'nebulaflow_book_statuses_v1',
+          DEFAULT_BOOK_STATUSES
+        );
+        const [activeTab, setActiveTab] = useState('boards'); // 'boards' | 'book'
         const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
         const [activeBoardId, setActiveBoardId] = useLocalStorage(
           'nebulaflow_active_board_v1',
@@ -1321,11 +2369,12 @@
             {/* ========================================== */}
             <header className="sticky top-0 z-30 h-16 border-b border-purple-500/15 bg-[#090911]/85 backdrop-blur-xl px-4 lg:px-8 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 min-w-0">
-                {activeBoard && (
+                {(activeBoard || activeTab === 'book') && (
                   <motion.button
                     whileHover={{ scale: 1.03, x: -2 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => {
+                      setActiveTab('boards');
                       setActiveBoardId(null);
                       setSearchQuery('');
                     }}
@@ -1337,7 +2386,10 @@
                 )}
 
                 <div
-                  onClick={() => setActiveBoardId(null)}
+                  onClick={() => {
+                    setActiveTab('boards');
+                    setActiveBoardId(null);
+                  }}
                   className="flex items-center gap-2.5 cursor-pointer group"
                 >
                   <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 via-violet-600 to-fuchsia-600 flex items-center justify-center shadow-glow group-hover:scale-105 transition-transform">
@@ -1348,7 +2400,25 @@
                   </span>
                 </div>
 
-                {activeBoard && (
+                {/* Botão de Navegação para o Book de Histórico */}
+                <button
+                  onClick={() =>
+                    setActiveTab((prev) => (prev === 'book' ? 'boards' : 'book'))
+                  }
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border text-xs sm:text-sm font-semibold transition-all ${
+                    activeTab === 'book'
+                      ? 'bg-gradient-to-r from-purple-600 to-fuchsia-600 border-purple-400 text-white shadow-glow'
+                      : 'bg-purple-500/10 hover:bg-purple-500/20 border-purple-500/30 text-purple-200'
+                  }`}
+                >
+                  <Icon name="book" className="w-4 h-4" />
+                  <span>Book de Histórico</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[11px] text-purple-200">
+                    {bookLogs.length}
+                  </span>
+                </button>
+
+                {activeBoard && activeTab === 'boards' && (
                   <>
                     <span className="text-slate-600 hidden md:inline">/</span>
                     <h1 className="text-sm md:text-base font-semibold text-white truncate max-w-[180px] sm:max-w-xs md:max-w-md">
@@ -1456,9 +2526,28 @@
             </header>
 
             {/* ========================================== */}
-            {/* TELA 1: GALERIA DE QUADROS (BOARDS)        */}
+            {/* TELA 0: BOOK DE HISTÓRICO E OCORRÊNCIAS    */}
             {/* ========================================== */}
-            {!activeBoard ? (
+            {activeTab === 'book' ? (
+              <HistoryBookView
+                logs={bookLogs}
+                members={members}
+                categories={bookCategories}
+                statuses={bookStatuses}
+                onUpdateCategories={setBookCategories}
+                onUpdateStatuses={setBookStatuses}
+                onAddLog={(newLog) => setBookLogs((prev) => [newLog, ...prev])}
+                onUpdateLog={(updatedLog) =>
+                  setBookLogs((prev) =>
+                    prev.map((l) => (l.id === updatedLog.id ? updatedLog : l))
+                  )
+                }
+                onDeleteLog={(logId) =>
+                  setBookLogs((prev) => prev.filter((l) => l.id !== logId))
+                }
+                onOpenTeamModal={() => setIsTeamModalOpen(true)}
+              />
+            ) : !activeBoard ? (
               <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
                 <motion.div
                   initial={{ opacity: 0, y: 16 }}
